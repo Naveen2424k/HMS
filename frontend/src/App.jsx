@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useContext } from 'react';
-import { SignIn, SignUp, SignedIn, SignedOut } from '@clerk/clerk-react';
+import { SignIn, SignUp, SignedIn, SignedOut, useAuth } from '@clerk/clerk-react';
 import AuthContext, { AuthProvider } from './context/AuthContext.jsx';
 import AdminDashboard from './pages/AdminDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
@@ -16,8 +16,9 @@ import Reminders from './pages/Reminders';
 
 const AppContent = () => {
     const { user, loading } = useContext(AuthContext);
+    const { isSignedIn, isLoaded: authLoaded } = useAuth();
 
-    if (loading) return (
+    if (loading || !authLoaded) return (
         <div className="flex items-center justify-center h-screen bg-slate-50">
             <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
@@ -32,14 +33,18 @@ const AppContent = () => {
                     <main className={user ? "p-6" : ""}>
                         <Routes>
                             <Route path="/login/*" element={
-                                <div className="flex items-center justify-center min-h-screen">
-                                    <SignIn routing="path" path="/login" />
-                                </div>
+                                !isSignedIn ? (
+                                    <div className="flex items-center justify-center min-h-screen">
+                                        <SignIn routing="path" path="/login" />
+                                    </div>
+                                ) : <Navigate to="/" />
                             } />
                             <Route path="/register/*" element={
-                                <div className="flex items-center justify-center min-h-screen">
-                                    <SignUp routing="path" path="/register" />
-                                </div>
+                                !isSignedIn ? (
+                                    <div className="flex items-center justify-center min-h-screen">
+                                        <SignUp routing="path" path="/register" />
+                                    </div>
+                                ) : <Navigate to="/" />
                             } />
 
                             <Route path="/doctors" element={user ? <Doctors /> : <Navigate to="/login" />} />
@@ -54,7 +59,14 @@ const AppContent = () => {
                                         user.role === 'Doctor' ? <DoctorDashboard /> :
                                             user.role === 'Receptionist' ? <ReceptionistDashboard /> :
                                                 <PatientDashboard />
-                                ) : <Navigate to="/login" />
+                                ) : (isSignedIn ?
+                                    <div className="flex items-center justify-center h-screen bg-slate-50">
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="w-16 h-16 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <p className="font-bold text-slate-600">Syncing your profile...</p>
+                                        </div>
+                                    </div>
+                                    : <Navigate to="/login" />)
                             } />
 
                             <Route path="*" element={<Navigate to="/" />} />

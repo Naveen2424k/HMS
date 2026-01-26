@@ -11,28 +11,44 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Set up interceptor to attach token to all requests
+        const interceptor = api.interceptors.request.use(async (config) => {
+            try {
+                const token = await getToken();
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+            } catch (error) {
+                console.error('Error getting token for interceptor:', error);
+            }
+            return config;
+        });
+
+        return () => {
+            api.interceptors.request.eject(interceptor);
+        };
+    }, [getToken]);
+
+    useEffect(() => {
         const syncUser = async () => {
-            if (clerkLoaded) {
-                if (clerkUser) {
-                    try {
-                        const token = await getToken();
-                        // This endpoint should verify the Clerk token and return/create the user in our DB
-                        const { data } = await api.get('/auth/profile', {
-                            headers: { Authorization: `Bearer ${token}` }
-                        });
-                        setUser(data);
-                    } catch (error) {
-                        console.error('Failed to sync user:', error);
-                        setUser(null);
-                    }
-                } else {
+            if (!clerkLoaded) return;
+
+            if (clerkUser) {
+                try {
+                    // This call will now automatically include the token thanks to the interceptor above
+                    const { data } = await api.get('/auth/profile');
+                    setUser(data);
+                } catch (error) {
+                    console.error('Failed to sync user:', error);
                     setUser(null);
                 }
-                setLoading(false);
+            } else {
+                setUser(null);
             }
+            setLoading(false);
         };
         syncUser();
-    }, [clerkUser, clerkLoaded, getToken]);
+    }, [clerkUser, clerkLoaded]); // Removed getToken as it's now handled by the interceptor effect
 
     const logout = async () => {
         await signOut();
