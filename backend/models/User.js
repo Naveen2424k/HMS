@@ -9,10 +9,13 @@ const userSchema = mongoose.Schema(
         clerkId: { type: String, unique: true },
         role: {
             type: String,
-            enum: ['Admin', 'Doctor', 'Receptionist', 'Patient'],
+            enum: ['Admin', 'Doctor', 'Receptionist', 'Patient', 'Nurse', 'LabTechnician', 'Pharmacist'],
             required: true,
         },
+        resetPasswordToken: String,
+        resetPasswordExpires: Date,
     },
+
     { timestamps: true }
 );
 

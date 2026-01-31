@@ -29,16 +29,26 @@ export default {
             },
             boxShadow: {
                 'luxury': '0 20px 40px -15px rgba(0, 0, 0, 0.05)',
+                'luxury-sm': '0 10px 20px -5px rgba(0, 0, 0, 0.03)',
+                'luxury-lg': '0 30px 60px -12px rgba(0, 0, 0, 0.08)',
+                'luxury-xl': '0 40px 80px -20px rgba(0, 0, 0, 0.12)',
+                'luxury-2xl': '0 50px 100px -25px rgba(61, 85, 239, 0.15)',
                 'luxury-hover': '0 30px 60px -12px rgba(61, 85, 239, 0.12)',
                 'glow': '0 0 15px rgba(61, 85, 239, 0.4)',
+                'glow-primary': '0 0 20px rgba(61, 85, 239, 0.5)',
             },
             animation: {
                 'pulse-subtle': 'pulse-subtle 3s ease-in-out infinite',
+                'float': 'float 6s ease-in-out infinite',
             },
             keyframes: {
                 'pulse-subtle': {
                     '0%, 100%': { opacity: '1' },
                     '50%': { opacity: '0.8' },
+                },
+                'float': {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-10px)' },
                 }
             }
         },

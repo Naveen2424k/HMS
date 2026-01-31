@@ -1,5 +1,9 @@
 const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
+const Doctor = require('../models/Doctor');
+const emailService = require('../services/emailService');
+const smsService = require('../services/smsService');
+
 
 const getAppointments = async (req, res) => {
     let appointments;
@@ -56,6 +60,37 @@ const createAppointment = async (req, res) => {
 
     const appointment = new Appointment({ patient: patientId, doctor: doctorId, date, reason });
     const createdAppointment = await appointment.save();
+
+    // Fetch details for notification
+    const fullAppointment = await Appointment.findById(createdAppointment._id)
+        .populate({
+            path: 'patient',
+            populate: { path: 'user', select: 'name email' }
+        })
+        .populate({
+            path: 'doctor',
+            populate: { path: 'user', select: 'name' }
+        });
+
+    if (fullAppointment && fullAppointment.patient && fullAppointment.doctor) {
+        const appointmentData = {
+            patientEmail: fullAppointment.patient.user.email,
+            patientName: fullAppointment.patient.user.name,
+            patientPhone: fullAppointment.patient.phone,
+            doctorName: fullAppointment.doctor.user.name,
+            specialization: fullAppointment.doctor.specialization,
+            date: fullAppointment.date,
+            time: new Date(fullAppointment.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            appointmentId: fullAppointment._id
+        };
+
+        // Send Email (Async - don't wait)
+        emailService.sendAppointmentConfirmation(appointmentData).catch(err => console.error(err));
+
+        // Send SMS (Async)
+        smsService.sendAppointmentConfirmationSMS(appointmentData).catch(err => console.error(err));
+    }
+
     res.status(201).json(createdAppointment);
 };
 

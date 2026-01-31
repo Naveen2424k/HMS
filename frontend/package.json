@@ -11,13 +11,15 @@
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.59.6",
+    "@tailwindcss/vite": "^4.1.18",
     "axios": "^1.6.0",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.292.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.18.0",
-    "recharts": "^2.9.3"
+    "recharts": "^2.9.3",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",
@@ -29,7 +31,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.4",
     "postcss": "^8.4.31",
-    "tailwindcss": "^3.3.5",
+    "tailwindcss": "^3.4.19",
     "vite": "^5.0.0"
   }
 }

@@ -9,6 +9,21 @@ const patientSchema = mongoose.Schema(
         address: { type: String },
         phone: { type: String, required: true },
         medicalHistory: [{ type: String }],
+        allergies: [{ type: String }],
+        chronicDiseases: [{ type: String }],
+        pastSurgeries: [{
+            name: String,
+            date: Date,
+            doctor: String,
+            outcome: String
+        }],
+        emergencyContact: {
+            name: String,
+            relation: String,
+            phone: String
+        },
+        insuranceProvider: { type: String },
+        insuranceId: { type: String }
     },
     { timestamps: true }
 );

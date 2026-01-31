@@ -5,65 +5,74 @@ import api from '../services/api';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const { user: clerkUser, isLoaded: clerkLoaded } = useUser();
-    const { getToken, signOut } = useAuth();
+    const { user: clerkUser, isLoaded: userLoaded } = useUser();
+    const { getToken, isLoaded: authLoaded, signOut } = useAuth();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Set up interceptor to attach token to all requests
+        // Setup Axios Interceptor for every request
         const interceptor = api.interceptors.request.use(async (config) => {
-            try {
-                const token = await getToken();
-                if (token) {
-                    config.headers.Authorization = `Bearer ${token}`;
+            if (authLoaded) {
+                try {
+                    const token = await getToken();
+                    if (token) {
+                        config.headers['Authorization'] = `Bearer ${token}`;
+                    }
+                } catch (error) {
+                    console.error('Interceptor token fetch failed:', error);
                 }
-            } catch (error) {
-                console.error('Error getting token for interceptor:', error);
             }
             return config;
         });
 
-        return () => {
-            api.interceptors.request.eject(interceptor);
-        };
-    }, [getToken]);
-
-    useEffect(() => {
         const syncUser = async () => {
-            if (!clerkLoaded) return;
-
-            if (clerkUser) {
+            if (userLoaded && authLoaded && clerkUser) {
                 try {
-                    // This call will now automatically include the token thanks to the interceptor above
+                    // Just trigger a profile fetch to sync state
                     const { data } = await api.get('/auth/profile');
                     setUser(data);
                 } catch (error) {
-                    console.error('Failed to sync user:', error);
+                    console.error('Failed to sync user with backend:', error);
                     setUser(null);
+                } finally {
+                    setLoading(false);
                 }
-            } else {
+            } else if (userLoaded && authLoaded && !clerkUser) {
                 setUser(null);
+                setLoading(false);
             }
-            setLoading(false);
         };
+
         syncUser();
-    }, [clerkUser, clerkLoaded]); // Removed getToken as it's now handled by the interceptor effect
+
+        // Cleanup interceptor on unmount
+        return () => api.interceptors.request.eject(interceptor);
+    }, [clerkUser, userLoaded, authLoaded, getToken]);
+
 
     const logout = async () => {
-        await signOut();
-        setUser(null);
+        try {
+            await signOut();
+            setUser(null);
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
     };
 
-    // login and register are now handled by Clerk components
-    const login = () => { console.warn('Use Clerk SignIn component instead'); };
-    const register = () => { console.warn('Use Clerk SignUp component instead'); };
-
     return (
-        <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+        <AuthContext.Provider value={{
+            user,
+            loading: loading || !userLoaded || !authLoaded,
+            authenticated: !!clerkUser,
+            logout
+        }}>
             {children}
         </AuthContext.Provider>
     );
 };
 
 export default AuthContext;
+
+
+
