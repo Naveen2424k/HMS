@@ -169,7 +169,7 @@ const AdminDashboard = () => {
 
             <main className="max-w-[1700px] mx-auto p-6 md:p-10 space-y-10">
                 {/* KPI Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {[
                         {
                             label: 'Total Patients',
@@ -377,7 +377,31 @@ const AdminDashboard = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {users.filter(u =>
+                                        {loading ? (
+                                            <tr>
+                                                <td colSpan="4" className="px-10 py-20 text-center">
+                                                    <div className="flex flex-col items-center gap-4">
+                                                        <RefreshCw className="animate-spin text-blue-600" size={32} />
+                                                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Loading users...</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ) : users.filter(u =>
+                                            u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                            u.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                                        ).length === 0 ? (
+                                            <tr>
+                                                <td colSpan="4" className="px-10 py-20 text-center">
+                                                    <div className="flex flex-col items-center gap-4">
+                                                        <Users className="text-slate-300" size={48} />
+                                                        <div>
+                                                            <p className="text-lg font-bold text-slate-400 uppercase tracking-widest">No Users Found</p>
+                                                            <p className="text-xs text-slate-300 mt-2">Click "Add User" to create a new account</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ) : users.filter(u =>
                                             u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                             u.email?.toLowerCase().includes(searchTerm.toLowerCase())
                                         ).map((u) => (
