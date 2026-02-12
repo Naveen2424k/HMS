@@ -6,12 +6,19 @@ import AuthContext from '../context/AuthContext';
 import { SimplePage, SimpleCard, SimpleButton, SimpleInput } from '../components/SimpleUI';
 
 const RoomBooking = () => {
-    const { authenticated } = useContext(AuthContext);
+    const { authenticated, user } = useContext(AuthContext);
     const navigate = useNavigate();
 
     // Core Data State
     const [wards, setWards] = useState([]);
     const [existingBooking, setExistingBooking] = useState(null);
+
+    useEffect(() => {
+        if (user?.role === 'Receptionist') {
+            navigate('/dashboard');
+            return;
+        }
+    }, [user, navigate]);
 
     // UI Loading State
     const [loading, setLoading] = useState(true);
@@ -203,8 +210,8 @@ const RoomBooking = () => {
                                 setSelectedBed(null);
                             }}
                             className={`w-full text-left p-6 rounded-xl transition-all border-2 border-b-4 text-xl font-bold flex justify-between items-center ${selectedWard?._id === ward._id
-                                    ? 'bg-blue-100 border-blue-600 text-blue-900 shadow-lg translate-x-2'
-                                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                                ? 'bg-blue-100 border-blue-600 text-blue-900 shadow-lg translate-x-2'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                                 }`}
                         >
                             <span>{ward.name}</span>

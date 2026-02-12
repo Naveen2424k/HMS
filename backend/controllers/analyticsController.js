@@ -5,6 +5,10 @@ const Bill = require('../models/Bill');
 const Payment = require('../models/Payment');
 const LabReport = require('../models/LabReport');
 const Prescription = require('../models/Prescription');
+const Department = require('../models/Department');
+const Ward = require('../models/Ward');
+const Bed = require('../models/Bed');
+const Inventory = require('../models/Inventory');
 
 // Get dashboard overview statistics
 exports.getDashboardStats = async (req, res) => {
@@ -19,11 +23,10 @@ exports.getDashboardStats = async (req, res) => {
             date: { $gte: today, $lt: tomorrow }
         });
 
-        // Total patients
+        // Total Counts
         const totalPatients = await Patient.countDocuments();
-
-        // Total doctors
         const totalDoctors = await Doctor.countDocuments();
+        const totalDepartments = await Department.countDocuments();
 
         // Today's revenue
         const todayRevenue = await Payment.aggregate([
@@ -54,15 +57,39 @@ exports.getDashboardStats = async (req, res) => {
             status: { $in: ['scheduled', 'confirmed'] }
         });
 
+        // Bed Occupancy
+        const totalBeds = await Bed.countDocuments();
+        const occupiedBeds = await Bed.countDocuments({ isOccupied: true });
+
+        // Low Stock Items
+        const lowStockItems = await Inventory.countDocuments({ quantity: { $lt: 10 } });
+
+        // Department Load (Doctors per department)
+        const departmentLoad = await Doctor.aggregate([
+            {
+                $group: {
+                    _id: '$specialization',
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
         res.json({
             success: true,
             stats: {
                 todayAppointments,
                 totalPatients,
                 totalDoctors,
+                totalDepartments,
                 todayRevenue: todayRevenue[0]?.total || 0,
                 pendingBills,
-                upcomingAppointments
+                upcomingAppointments,
+                bedOccupancy: totalBeds > 0 ? ((occupiedBeds / totalBeds) * 100).toFixed(1) : 0,
+                totalBeds,
+                occupiedBeds,
+                lowStockItems,
+                departmentLoad
             }
         });
     } catch (error) {

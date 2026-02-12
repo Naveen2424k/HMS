@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+dist/
+build/
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+build_log.txt
+lint_log.txt
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (keep in repo but exclude from deployment)
+DEPLOYMENT_READINESS.md
+backend/SECURITY_SETUP.js
+backend/ADMIN_BLUEPRINT.md
+
+# Scripts
+scripts/

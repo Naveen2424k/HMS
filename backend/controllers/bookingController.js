@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const Bed = require('../models/Bed');
 const Ward = require('../models/Ward');
+const { sendNotification } = require('../services/notificationService');
 
 // @desc    Book a bed
 // @route   POST /api/ipd/book-bed
@@ -46,6 +47,15 @@ const bookBed = async (req, res) => {
         const populatedBooking = await Booking.findById(booking._id)
             .populate('ward')
             .populate('bed');
+
+        // Notify User
+        await sendNotification(req.app, {
+            recipient: userId,
+            type: 'System',
+            title: 'Room Booked Successfully',
+            message: `Bed ${populatedBooking.bed.bedNumber} in ${populatedBooking.ward.name} has been reserved for you.`,
+            priority: 'Medium'
+        });
 
         res.status(201).json(populatedBooking);
 
@@ -104,9 +114,16 @@ const cancelBooking = async (req, res) => {
         }
 
         // Delete (or soft delete/update status) the booking
-        // Requirement said "Remove booking record", but updating status is safer practice. 
-        // However, to follow strict requirement "Remove booking record":
         await Booking.findByIdAndDelete(booking._id);
+
+        // Notify User
+        await sendNotification(req.app, {
+            recipient: userId,
+            type: 'System',
+            title: 'Booking Cancelled',
+            message: `Your room reservation has been cancelled. The bed has been released.`,
+            priority: 'Medium'
+        });
 
         res.json({ message: 'Booking cancelled successfully' });
 

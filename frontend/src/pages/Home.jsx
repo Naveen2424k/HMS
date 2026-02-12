@@ -33,15 +33,17 @@ const Home = () => {
                             </h1>
                             <p className="text-xl mb-8 text-blue-100">
                                 Quality healthcare services for you and your family.
-                                Book appointments, reserve rooms, and access your medical records easily.
+                                Book appointments and access your medical records easily.
                             </p>
                             <div className="flex flex-wrap gap-4">
-                                <Link
-                                    to="/appointments"
-                                    className="px-8 py-4 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-all shadow-lg text-lg"
-                                >
-                                    📅 Book Appointment
-                                </Link>
+                                {user?.role !== 'Receptionist' && (
+                                    <Link
+                                        to="/appointments"
+                                        className="px-8 py-4 bg-white text-blue-600 rounded-xl font-bold hover:bg-blue-50 transition-all shadow-lg text-lg"
+                                    >
+                                        📅 Book Appointment
+                                    </Link>
+                                )}
                                 <a
                                     href="tel:108"
                                     className="px-8 py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg text-lg"
@@ -87,21 +89,17 @@ const Home = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {/* Service Cards */}
-                        <Link to="/appointments" className="bg-blue-50 p-6 rounded-xl hover:shadow-lg transition-all border-2 border-blue-100 hover:border-blue-300">
-                            <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
-                                <Calendar className="text-white" size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold text-blue-900 mb-2">OPD Consultation</h3>
-                            <p className="text-gray-600">Book appointments with specialist doctors</p>
-                        </Link>
+                        {user?.role !== 'Receptionist' && (
+                            <Link to="/appointments" className="bg-blue-50 p-6 rounded-xl hover:shadow-lg transition-all border-2 border-blue-100 hover:border-blue-300">
+                                <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mb-4">
+                                    <Calendar className="text-white" size={32} />
+                                </div>
+                                <h3 className="text-xl font-bold text-blue-900 mb-2">OPD Consultation</h3>
+                                <p className="text-gray-600">Book appointments with specialist doctors</p>
+                            </Link>
+                        )}
 
-                        <Link to="/room-booking" className="bg-green-50 p-6 rounded-xl hover:shadow-lg transition-all border-2 border-green-100 hover:border-green-300">
-                            <div className="w-16 h-16 bg-green-600 rounded-lg flex items-center justify-center mb-4">
-                                <Bed className="text-white" size={32} />
-                            </div>
-                            <h3 className="text-xl font-bold text-green-900 mb-2">Room Booking</h3>
-                            <p className="text-gray-600">Reserve hospital rooms and beds online</p>
-                        </Link>
+
 
                         <Link to="/dashboard" className="bg-purple-50 p-6 rounded-xl hover:shadow-lg transition-all border-2 border-purple-100 hover:border-purple-300">
                             <div className="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mb-4">

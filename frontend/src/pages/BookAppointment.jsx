@@ -5,7 +5,7 @@ import api from '../services/api';
 import AuthContext from '../context/AuthContext';
 
 const BookAppointment = () => {
-    const { authenticated } = useContext(AuthContext);
+    const { authenticated, user } = useContext(AuthContext);
     const navigate = useNavigate();
     const [doctors, setDoctors] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -20,7 +20,7 @@ const BookAppointment = () => {
     useEffect(() => {
         fetchDoctors();
         window.scrollTo(0, 0);
-    }, []);
+    }, [user, navigate]);
 
     const fetchDoctors = async () => {
         try {

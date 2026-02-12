@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail, MapPin, Clock } from 'lucide-react';
+import AuthContext from '../context/AuthContext';
 
 const FooterSimple = () => {
+    const { user } = useContext(AuthContext);
+
     return (
         <footer className="bg-gray-900 text-white mt-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -33,16 +36,20 @@ const FooterSimple = () => {
                                     Our Services
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="/appointments" className="text-gray-400 hover:text-white transition-colors">
-                                    Book Appointment
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/room-booking" className="text-gray-400 hover:text-white transition-colors">
-                                    Room Booking
-                                </Link>
-                            </li>
+                            {user?.role !== 'Receptionist' && (
+                                <>
+                                    <li>
+                                        <Link to="/appointments" className="text-gray-400 hover:text-white transition-colors">
+                                            Book Appointment
+                                        </Link>
+                                    </li>
+                                    <li>
+                                        <Link to="/room-booking" className="text-gray-400 hover:text-white transition-colors">
+                                            Room Booking
+                                        </Link>
+                                    </li>
+                                </>
+                            )}
                             <li>
                                 <Link to="/contact" className="text-gray-400 hover:text-white transition-colors">
                                     Contact Us

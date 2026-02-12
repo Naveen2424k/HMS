@@ -4,18 +4,41 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+
 dotenv.config();
 connectDB();
 
 const app = express();
 
+// Security and Performance Middleware
+app.use(helmet());
+app.use(compression());
 app.use(express.json());
-app.use(cors(
-    {
-        origin: process.env.FRONTEND_URL,
-        credentials: true,
-    }
-));
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per `window`
+    message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+app.use('/api/', limiter);
+
+// CORS configuration - allowing multiple origins if needed
+const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:5173'];
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+}));
+
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -35,15 +58,33 @@ app.use('/api/tokens', require('./routes/tokenRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
 app.use('/api/analytics', require('./routes/analyticsRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/set-role', require('./routes/setRole'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/doctor/appointments', require('./routes/doctorAppointmentRoutes'));
 
 
 
 
+app.get('/health', async (req, res) => {
+    try {
+        const mongoose = require('mongoose');
+        const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+        res.json({
+            status: 'healthy',
+            timestamp: new Date(),
+            database: dbStatus,
+            uptime: process.uptime()
+        });
+    } catch (error) {
+        res.status(503).json({ status: 'unhealthy', error: error.message });
+    }
+});
+
 app.get('/', (req, res) => {
     res.send('API is running...');
 });
+
 
 app.use(errorHandler);
 

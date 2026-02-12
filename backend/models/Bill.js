@@ -12,5 +12,9 @@ const billSchema = mongoose.Schema(
     { timestamps: true }
 );
 
+billSchema.index({ patient: 1 });
+billSchema.index({ appointment: 1 });
+
 const Bill = mongoose.model('Bill', billSchema);
 module.exports = Bill;
+

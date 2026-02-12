@@ -7,7 +7,14 @@ export default {
     theme: {
         extend: {
             colors: {
+                border: "hsl(var(--border))",
+                input: "hsl(var(--border))",
+                ring: "hsl(var(--ring))",
+                background: "hsl(var(--background))",
+                foreground: "hsl(var(--card-foreground))",
                 primary: {
+                    DEFAULT: "hsl(var(--primary) / <alpha-value>)",
+                    foreground: "hsl(var(--primary-foreground) / <alpha-value>)",
                     50: '#f0f5ff',
                     100: '#e0ebff',
                     200: '#c7daff',
@@ -20,11 +27,28 @@ export default {
                     900: '#25318a',
                     950: '#161b51',
                 },
+                secondary: {
+                    DEFAULT: "hsl(var(--secondary) / <alpha-value>)",
+                    foreground: "hsl(var(--secondary-foreground) / <alpha-value>)",
+                },
+                accent: {
+                    DEFAULT: "hsl(var(--accent) / <alpha-value>)",
+                    foreground: "hsl(var(--accent-foreground) / <alpha-value>)",
+                },
+                card: {
+                    DEFAULT: "hsl(var(--card) / <alpha-value>)",
+                    foreground: "hsl(var(--card-foreground) / <alpha-value>)",
+                },
             },
             borderRadius: {
+                xl: "var(--radius)",
+                lg: "var(--radius)",
+                md: "calc(var(--radius) - 2px)",
+                sm: "calc(var(--radius) - 4px)",
                 '5xl': '2.5rem',
             },
             fontFamily: {
+                sans: ['Outfit', 'sans-serif'],
                 jakarta: ['Plus Jakarta Sans', 'sans-serif'],
             },
             boxShadow: {
@@ -53,5 +77,20 @@ export default {
             }
         },
     },
-    plugins: [],
+    plugins: [
+        function ({ addUtilities }) {
+            addUtilities({
+                '.scrollbar-hide': {
+                    /* IE and Edge */
+                    '-ms-overflow-style': 'none',
+                    /* Firefox */
+                    'scrollbar-width': 'none',
+                    /* Safari and Chrome */
+                    '&::-webkit-scrollbar': {
+                        display: 'none'
+                    }
+                }
+            })
+        }
+    ],
 }

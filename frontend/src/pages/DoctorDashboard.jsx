@@ -9,20 +9,20 @@ import {
     Activity,
     Zap,
     Clipboard,
-    Award,
     Stethoscope,
     Users,
     TrendingUp,
     Phone,
-    User,
     RefreshCw,
-    Check
+    Check,
+    Bell,
+    ChevronRight,
+    Search
 } from 'lucide-react';
 import AddMedicalRecordModal from '../components/AddMedicalRecordModal';
 
 const DoctorDashboard = () => {
     const { user } = useUser();
-
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
 
@@ -58,13 +58,11 @@ const DoctorDashboard = () => {
             alert('Dashboard synced successfully!');
         } catch (error) {
             console.error('Sync failed:', error);
-            alert('Sync failed. Please try again.');
         } finally {
             setIsSyncing(false);
         }
     };
 
-    // Fetch real data from backend
     const fetchData = async () => {
         if (!user) return;
         try {
@@ -75,20 +73,13 @@ const DoctorDashboard = () => {
             const data = response.data;
             setAppointments(data);
 
-            // Calculate Stats
             const pending = data.filter(a => a.status === 'Pending').length;
             const accepted = data.filter(a => a.status === 'Approved').length;
             const completedToday = data.filter(a => a.status === 'Completed' && new Date(a.date).toDateString() === new Date().toDateString()).length;
             const completedTotal = data.filter(a => a.status === 'Completed').length;
 
-            setStats({
-                pending,
-                accepted,
-                completedToday,
-                totalResolved: completedTotal
-            });
+            setStats({ pending, accepted, completedToday, totalResolved: completedTotal });
 
-            // Update Queue
             const activeQueue = data.filter(a => ['Approved', 'Pending'].includes(a.status));
             if (activeQueue.length > 0) {
                 const current = activeQueue[0];
@@ -96,18 +87,12 @@ const DoctorDashboard = () => {
                 setQueueState({
                     currentPatient: current.patient?.user?.name || 'Anonymous',
                     tokenNumber: current._id.toString().slice(-3).toUpperCase(),
-                    status: current.status === 'Approved' ? 'Ready' : 'Pending Approval',
+                    status: current.status === 'Approved' ? 'Ready' : 'Pending',
                     nextPatient: next?.patient?.user?.name || 'None Scheduled',
                     waitingCount: activeQueue.length
                 });
             } else {
-                setQueueState({
-                    currentPatient: '---',
-                    tokenNumber: '-',
-                    status: 'No Active Patients',
-                    nextPatient: '---',
-                    waitingCount: 0
-                });
+                setQueueState({ currentPatient: '---', tokenNumber: '-', status: 'Idle', nextPatient: '---', waitingCount: 0 });
             }
         } catch (error) {
             console.error('Error fetching doctor data:', error);
@@ -123,236 +108,208 @@ const DoctorDashboard = () => {
     const handleAction = async (id, action) => {
         try {
             await axios.put(`http://localhost:5000/api/doctor/appointments/${id}/${action}`);
-            fetchData(); // Refresh data
+            fetchData();
         } catch (error) {
             console.error(`Error performing ${action}:`, error);
         }
     };
 
     return (
-        <div className="min-h-screen bg-blue-50 pb-10">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="min-h-screen bg-blue-50 pb-20">
 
-                {/* Welcome Header */}
-                <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                            <Stethoscope size={28} />
-                        </div>
+            {/* Header Unit */}
+            <div className="bg-white border-b-4 border-blue-600 flex items-center justify-between px-8 py-6 h-24 sticky top-0 z-50 shadow-md">
+                <div className="max-w-[1600px] mx-auto w-full flex items-center justify-between">
+                    <div className="flex items-center gap-5">
+                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-blue-100">🏥</div>
                         <div>
-                            <h1 className="text-3xl font-bold text-blue-900">
-                                {greeting}, Dr. {user?.lastName || user?.firstName || 'Doctor'}
-                            </h1>
-                            <p className="text-gray-600 font-medium">Chief Medical Specialist • Level 7 Access</p>
+                            <h1 className="text-2xl font-black text-blue-900 leading-none">Console.Practitioner</h1>
+                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em] mt-2 italic">Sector Active Status: Verified</p>
                         </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
+
+                    <div className="flex items-center gap-10">
+                        <div className="hidden md:flex items-center bg-blue-50 border-2 border-blue-100 rounded-2xl px-5 py-3 h-14">
+                            <Search size={22} className="text-blue-400 mr-3" />
+                            <input type="text" placeholder="Omni-Search..." className="bg-transparent border-none outline-none text-lg font-bold w-64 text-blue-900 placeholder:text-blue-200" />
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <button className="text-blue-400 hover:text-blue-600 p-2"><Bell size={32} /></button>
+                            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-md">
+                                {user?.firstName?.charAt(0)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="max-w-[1600px] mx-auto px-8 pt-12">
+
+                {/* Protocol Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-12">
+                    <div>
+                        <h2 className="text-6xl font-black text-blue-900 leading-none mb-3 tracking-tighter italic">{greeting}, Dr. {user?.lastName || user?.firstName}</h2>
+                        <p className="text-2xl text-gray-500 font-bold tracking-wide italic uppercase">Queue Status: {stats.pending + stats.accepted} Patients Linked</p>
+                    </div>
+
+                    <div className="flex items-center gap-6">
                         <button
                             onClick={syncAccount}
                             disabled={isSyncing}
-                            className="bg-white text-gray-700 px-6 py-3 rounded-xl font-bold border-2 border-blue-100 hover:bg-blue-50 transition-all shadow-md flex items-center gap-2"
+                            className="flex items-center gap-3 px-8 py-4 bg-white border-4 border-blue-50 rounded-2xl font-black text-blue-700 hover:border-blue-200 transition-all text-lg shadow-sm"
                         >
-                            <RefreshCw size={20} className={isSyncing ? 'animate-spin' : ''} />
-                            {isSyncing ? 'Syncing...' : 'Sync Dashboard'}
+                            <RefreshCw size={24} className={isSyncing ? 'animate-spin' : ''} />
+                            Sync Registry
                         </button>
                         <button
                             onClick={() => setIsRecordModalOpen(true)}
-                            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md flex items-center gap-2"
+                            className="flex items-center gap-3 px-10 py-5 bg-blue-600 text-white rounded-2xl font-black text-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 active:scale-95"
                         >
-                            <Zap size={20} />
-                            Quick Diagnosis
+                            <Zap size={24} />
+                            Flash Diagnosis
                         </button>
                     </div>
                 </div>
 
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-xl shadow-md border-2 border-blue-100">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                                <Users size={24} />
+                {/* Performance Stats Grid */}
+                <div className="grid-stats">
+                    <div className="simple-card">
+                        <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center"><Users size={36} /></div>
+                            <div>
+                                <p className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none mb-2">Subject Queue</p>
+                                <h3 className="text-4xl font-black text-blue-900 leading-none">{stats.accepted}</h3>
                             </div>
-                            <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Queue</span>
                         </div>
-                        <h3 className="text-3xl font-bold text-gray-900">{stats.accepted}</h3>
-                        <p className="text-sm text-gray-600 font-medium">Accepted Patients</p>
                     </div>
-
-                    <div className="bg-white p-6 rounded-xl shadow-md border-2 border-amber-100">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600">
-                                <Clock size={24} />
+                    <div className="simple-card">
+                        <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center"><Clock size={36} /></div>
+                            <div>
+                                <p className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none mb-2">Auth Pending</p>
+                                <h3 className="text-4xl font-black text-blue-900 leading-none">{stats.pending}</h3>
                             </div>
-                            <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Pending</span>
                         </div>
-                        <h3 className="text-3xl font-bold text-gray-900">{stats.pending}</h3>
-                        <p className="text-sm text-gray-600 font-medium">Awaiting Approval</p>
                     </div>
-
-                    <div className="bg-white p-6 rounded-xl shadow-md border-2 border-green-100">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
-                                <CheckCircle size={24} />
+                    <div className="simple-card">
+                        <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center"><CheckCircle size={36} /></div>
+                            <div>
+                                <p className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none mb-2">Resolved Today</p>
+                                <h3 className="text-4xl font-black text-blue-900 leading-none">{stats.completedToday}</h3>
                             </div>
-                            <span className="text-xs font-bold text-green-600 uppercase tracking-wider">Today</span>
                         </div>
-                        <h3 className="text-3xl font-bold text-gray-900">{stats.completedToday}</h3>
-                        <p className="text-sm text-gray-600 font-medium">Completed Today</p>
                     </div>
-
-                    <div className="bg-white p-6 rounded-xl shadow-md border-2 border-purple-100">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
-                                <Award size={24} />
+                    <div className="simple-card">
+                        <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100"><TrendingUp size={36} /></div>
+                            <div>
+                                <p className="text-xs font-black text-gray-400 uppercase tracking-widest leading-none mb-2">Mission Total</p>
+                                <h3 className="text-4xl font-black text-blue-900 leading-none">{stats.totalResolved}</h3>
                             </div>
-                            <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">Lifetime</span>
                         </div>
-                        <h3 className="text-3xl font-bold text-gray-900">{stats.totalResolved}</h3>
-                        <p className="text-sm text-gray-600 font-medium">Total Resolutions</p>
                     </div>
                 </div>
 
-                {/* Queue & List Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Dashboard Operations Grid Partition */}
+                <div className="grid-main">
 
-                    {/* Left: Queue Control */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-gradient-to-br from-blue-700 to-indigo-800 rounded-2xl p-8 text-white shadow-xl h-full relative overflow-hidden">
-                            <div className="absolute right-0 top-0 opacity-10 transform translate-x-4 -translate-y-4">
-                                <Activity size={180} />
-                            </div>
+                    {/* Live Pulse Sidebar */}
+                    <div className="col-span-side">
+                        <div className="bg-blue-900 text-white p-10 rounded-[2.5rem] shadow-[0_30px_60px_-15px_rgba(30,58,138,0.3)] relative overflow-hidden h-full flex flex-col gap-10">
+                            <Activity size={250} className="absolute -right-20 -bottom-20 opacity-5" />
+                            <h3 className="text-3xl font-black italic mb-4 flex items-center gap-4">
+                                <Stethoscope size={40} className="text-blue-400" /> LIVE PULSE
+                            </h3>
 
-                            <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-8">
-                                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                                        <Activity className="text-green-400 animate-pulse" /> Live Queue
-                                    </h2>
-                                    <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold uppercase tracking-widest">Sector Alpha</span>
-                                </div>
-
-                                <div className="mb-10">
-                                    <p className="text-blue-100 text-sm font-bold uppercase tracking-wider mb-2">Current Patient</p>
-                                    <h3 className="text-4xl font-extrabold mb-4 uppercase truncate">{queueState.currentPatient}</h3>
-
-                                    <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-blue-200 text-xs font-bold uppercase">Token Number</span>
-                                            <span className="text-2xl font-black text-white">{queueState.tokenNumber}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-blue-200 text-xs font-bold uppercase">Status</span>
-                                            <span className="text-sm font-bold bg-green-500 text-white px-2 py-0.5 rounded">{queueState.status}</span>
-                                        </div>
+                            <div className="space-y-10 relative z-10 flex-1">
+                                <div className="p-8 bg-white/10 rounded-3xl border border-white/10">
+                                    <p className="text-xs font-black text-blue-300 mb-4 uppercase tracking-[0.2em] italic">Current Active Subject</p>
+                                    <h4 className="text-4xl font-black mb-6 tracking-tighter uppercase italic truncate">{queueState.currentPatient}</h4>
+                                    <div className="flex justify-between items-center bg-blue-600/30 p-4 rounded-2xl">
+                                        <span className="font-black italic">TOKEN: {queueState.tokenNumber}</span>
+                                        <span className="font-black text-green-400 uppercase tracking-widest">{queueState.status}</span>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <button
-                                        onClick={fetchData}
-                                        className="w-full bg-white text-blue-700 py-4 rounded-xl font-bold text-lg hover:bg-blue-50 transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg"
-                                    >
-                                        <Users size={20} />
-                                        Update Local Queue
-                                    </button>
-                                    <p className="text-center text-blue-200 text-sm font-medium">
-                                        {queueState.waitingCount} Patients in active queue
-                                    </p>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                                        <p className="text-xs text-blue-300 mb-2 font-black uppercase tracking-widest italic text-center">In Queue</p>
+                                        <p className="text-4xl font-black text-center italic">{queueState.waitingCount}</p>
+                                    </div>
+                                    <div className="p-6 bg-white/5 rounded-3xl border border-white/5">
+                                        <p className="text-xs text-blue-300 mb-2 font-black uppercase tracking-widest italic text-center">Next Up</p>
+                                        <p className="text-base font-black text-center italic truncate">{queueState.nextPatient}</p>
+                                    </div>
                                 </div>
 
-                                <div className="mt-8 pt-8 border-t border-white/10">
-                                    <p className="text-blue-200 text-xs font-bold uppercase mb-2">Next Scheduled</p>
-                                    <p className="font-bold text-white truncate">{queueState.nextPatient}</p>
-                                </div>
+                                <button
+                                    onClick={fetchData}
+                                    className="w-full py-6 mt-10 bg-white text-blue-900 rounded-[1.5rem] font-black text-2xl hover:bg-blue-50 transition-all shadow-xl active:scale-95 italic"
+                                >
+                                    FORCE HUB SYNC
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* Right: Appointment List */}
-                    <div className="lg:col-span-2">
-                        <div className="bg-white rounded-2xl shadow-md border-2 border-blue-100 overflow-hidden min-h-[500px]">
-                            <div className="p-6 border-b-2 border-blue-50 flex items-center justify-between bg-white">
-                                <h3 className="text-2xl font-bold text-blue-900 flex items-center gap-2">
-                                    <Clipboard size={24} className="text-blue-600" />
-                                    Clinical Chart Stream
+                    {/* Registry Content Column */}
+                    <div className="col-span-content">
+                        <div className="simple-card !p-0 overflow-hidden min-h-[600px] flex flex-col">
+                            <div className="p-10 border-b-4 border-blue-600 bg-white flex justify-between items-center">
+                                <h3 className="text-3xl font-black text-blue-900 italic uppercase flex items-center gap-4">
+                                    <Clipboard size={36} className="text-blue-600" /> Clinical Registry
                                 </h3>
-                                <div className="flex gap-2 text-xs font-bold uppercase">
-                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Real-time</span>
+                                <div className="px-6 py-3 bg-green-50 text-green-700 rounded-full text-sm font-black uppercase tracking-widest italic border-2 border-green-100 animate-pulse">
+                                    Live Protocol Link Active
                                 </div>
                             </div>
 
-                            <div className="p-0">
+                            <div className="flex-1">
                                 {loading && appointments.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                                        <Activity size={48} className="animate-spin mb-4" />
-                                        <p className="font-bold uppercase tracking-wider">Loading Registry...</p>
-                                    </div>
-                                ) : appointments.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                                        <Calendar size={64} className="mb-4 opacity-20" />
-                                        <p className="font-bold uppercase tracking-wider">No Appointments Found</p>
+                                    <div className="flex flex-col items-center justify-center p-32">
+                                        <div className="w-16 h-16 border-8 border-blue-600 border-t-transparent rounded-full animate-spin mb-8"></div>
+                                        <p className="text-lg font-black text-gray-400 uppercase tracking-[0.4em] italic">Accessing Neural Registry...</p>
                                     </div>
                                 ) : (
-                                    <div className="divide-y-2 divide-blue-50">
+                                    <div className="divide-y-4 divide-blue-50">
                                         {appointments.map((apt) => (
-                                            <div key={apt._id} className="p-6 hover:bg-blue-50/50 transition-colors group">
-                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-14 h-14 bg-white rounded-xl border-2 border-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl shadow-sm group-hover:border-blue-300">
+                                            <div key={apt._id} className="p-10 hover:bg-blue-50/50 transition-all group">
+                                                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-10">
+                                                    <div className="flex items-center gap-10 text-left">
+                                                        <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center text-4xl font-black text-blue-900 border-4 border-blue-100 group-hover:border-blue-600 group-hover:scale-110 transition-all shadow-sm">
                                                             {apt.patient?.user?.name?.charAt(0) || 'P'}
                                                         </div>
                                                         <div>
-                                                            <h4 className="text-xl font-bold text-gray-900 uppercase tracking-tight">{apt.patient?.user?.name}</h4>
-                                                            <p className="text-gray-500 font-medium text-sm">{apt.reason || 'General Checkup'}</p>
-                                                            <div className="flex items-center gap-4 mt-2">
-                                                                <div className="flex items-center gap-1.5 text-blue-600 text-xs font-bold">
-                                                                    <Clock size={14} />
-                                                                    {new Date(apt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                                </div>
-                                                                <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                                                                <div className="text-gray-500 text-xs font-bold">
-                                                                    {new Date(apt.date).toLocaleDateString()}
-                                                                </div>
+                                                            <h4 className="text-3xl font-black text-blue-900 mb-3 italic uppercase group-hover:text-blue-600 transition-colors">{apt.patient?.user?.name}</h4>
+                                                            <div className="flex flex-wrap gap-8 text-lg font-black text-gray-400 uppercase italic">
+                                                                <span className="flex items-center gap-2"><Clock size={20} className="text-blue-500" /> {new Date(apt.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                                <span className="flex items-center gap-2"><Calendar size={20} className="text-blue-500" /> {new Date(apt.date).toLocaleDateString()}</span>
+                                                                <span className="text-blue-300">ID: {apt._id.slice(-6).toUpperCase()}</span>
                                                             </div>
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-4">
-                                                        <span className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest ${apt.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
-                                                            apt.status === 'Pending' ? 'bg-amber-100 text-amber-700 animate-pulse' :
-                                                                apt.status === 'Completed' ? 'bg-blue-100 text-blue-700' :
-                                                                    'bg-gray-100 text-gray-600'
+                                                    <div className="flex items-center gap-6">
+                                                        <span className={`px-8 py-4 rounded-2xl text-base font-black uppercase italic tracking-widest transition-all ${apt.status === 'Approved' ? 'bg-green-100 text-green-700 border-4 border-green-200 shadow-lg shadow-green-100' :
+                                                                apt.status === 'Pending' ? 'bg-amber-100 text-amber-700 border-4 border-blue-50 animate-pulse' :
+                                                                    apt.status === 'Completed' ? 'bg-blue-900 text-white' :
+                                                                        'bg-gray-100 text-gray-500'
                                                             }`}>
                                                             {apt.status}
                                                         </span>
 
-                                                        <div className="flex gap-2">
+                                                        <div className="flex gap-4">
                                                             {apt.status === 'Pending' && (
-                                                                <button
-                                                                    onClick={() => handleAction(apt._id, 'accept')}
-                                                                    className="p-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-md active:scale-95"
-                                                                    title="Accept"
-                                                                >
-                                                                    <Check size={20} />
-                                                                </button>
+                                                                <button onClick={() => handleAction(apt._id, 'accept')} className="w-14 h-14 bg-green-600 text-white rounded-2xl flex items-center justify-center hover:bg-green-700 transition shadow-xl active:scale-95"><Check size={32} /></button>
                                                             )}
                                                             {apt.status === 'Approved' && (
-                                                                <button
-                                                                    onClick={() => handleAction(apt._id, 'complete')}
-                                                                    className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md active:scale-95"
-                                                                    title="Mark Completed"
-                                                                >
-                                                                    <Zap size={20} />
-                                                                </button>
+                                                                <button onClick={() => handleAction(apt._id, 'complete')} className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center hover:bg-blue-700 transition shadow-xl active:scale-95"><Zap size={32} /></button>
                                                             )}
                                                             {(apt.status === 'Pending' || apt.status === 'Approved') && (
-                                                                <button
-                                                                    onClick={() => handleAction(apt._id, 'reject')}
-                                                                    className="p-3 bg-red-100 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-95"
-                                                                    title="Reject"
-                                                                >
-                                                                    <XCircle size={20} />
-                                                                </button>
+                                                                <button onClick={() => handleAction(apt._id, 'reject')} className="w-14 h-14 bg-white border-4 border-blue-50 text-blue-200 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white hover:border-red-600 transition-all active:scale-95"><XCircle size={32} /></button>
                                                             )}
+                                                            <button className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center hover:bg-blue-100 transition shadow-sm"><ChevronRight size={32} /></button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -361,60 +318,14 @@ const DoctorDashboard = () => {
                                     </div>
                                 )}
                             </div>
-
-                            <div className="p-6 bg-gray-50 border-t-2 border-blue-50 text-center">
-                                <button
-                                    onClick={() => fetchData()}
-                                    className="text-blue-600 font-bold text-sm hover:underline flex items-center justify-center gap-2 mx-auto"
-                                >
-                                    <RefreshCw size={16} />
-                                    Synchronize Digital Registry
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Bottom Actions */}
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-xl shadow-md border border-blue-100 flex items-center gap-4 cursor-pointer hover:bg-blue-50 transition-all group">
-                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                            <Clipboard size={24} />
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-gray-900">Health Records</h4>
-                            <p className="text-sm text-gray-500 font-medium">Manage unified patient data</p>
-                        </div>
-                    </div>
+            </div>
 
-                    <div className="bg-white p-6 rounded-xl shadow-md border border-green-100 flex items-center gap-4 cursor-pointer hover:bg-green-50 transition-all group">
-                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600 group-hover:bg-green-600 group-hover:text-white transition-all">
-                            <TrendingUp size={24} />
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-gray-900">Performance</h4>
-                            <p className="text-sm text-gray-500 font-medium">View efficiency analytics</p>
-                        </div>
-                    </div>
-
-                    <div className="bg-red-600 p-6 rounded-xl shadow-md text-white flex items-center gap-4 cursor-pointer hover:bg-red-700 transition-all shadow-red-200">
-                        <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center text-white">
-                            <Phone size={24} />
-                        </div>
-                        <div>
-                            <h4 className="font-bold">Emergency</h4>
-                            <p className="text-sm text-red-100 font-medium">Immediate support line</p>
-                        </div>
-                    </div>
-                </div>
-
-            </div >
-
-            <AddMedicalRecordModal
-                isOpen={isRecordModalOpen}
-                onClose={() => setIsRecordModalOpen(false)}
-            />
-        </div >
+            <AddMedicalRecordModal isOpen={isRecordModalOpen} onClose={() => setIsRecordModalOpen(false)} />
+        </div>
     );
 };
 

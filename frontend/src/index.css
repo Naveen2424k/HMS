@@ -1,47 +1,81 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  html {
-    font-size: 20px; /* Increased base font size for better readability */
-  }
-
   body {
-    @apply bg-blue-50 text-gray-900 m-0 p-0 overflow-x-hidden antialiased;
-    font-family: 'Roboto', sans-serif; /* Clean, standard font */
-    line-height: 1.6;
-  }
-
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold text-blue-900 mb-4;
+    @apply bg-blue-50 text-gray-900 antialiased;
+    font-family: 'Plus Jakarta Sans', sans-serif;
   }
 }
 
 @layer components {
+  /* The "Simple Mode" Style System */
+  
   .simple-card {
-    @apply bg-white border-2 border-blue-200 rounded-xl p-8 shadow-md hover:shadow-lg transition-shadow duration-300;
+    @apply bg-white p-8 rounded-3xl shadow-lg border-2 border-blue-50 transition-all hover:shadow-xl;
   }
 
   .simple-btn {
-    @apply px-8 py-4 rounded-xl font-bold text-lg transition-transform active:scale-95 flex items-center justify-center gap-3;
+    @apply inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold transition-all active:scale-95 text-xl shadow-md;
   }
 
   .btn-primary {
-    @apply bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg;
+    @apply bg-blue-600 text-white hover:bg-blue-700 shadow-blue-100;
   }
 
   .btn-secondary {
-    @apply bg-white text-blue-800 border-2 border-blue-200 hover:border-blue-600 hover:bg-blue-50;
+    @apply bg-blue-100 text-blue-800 hover:bg-blue-200;
   }
 
   .btn-danger {
-    @apply bg-red-100 text-red-700 border-2 border-red-200 hover:bg-red-200 hover:border-red-400;
+    @apply bg-red-600 text-white hover:bg-red-700 shadow-red-100;
   }
 
   .simple-input {
-    @apply w-full p-4 text-lg border-2 border-gray-300 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all placeholder:text-gray-400;
+    @apply w-full px-6 py-5 bg-white border-4 border-blue-50 rounded-2xl text-2xl focus:border-blue-600 focus:ring-0 outline-none transition-all placeholder:text-gray-300;
   }
+
+  /* Grid Layouts Only - High Precision Arrangement */
+  
+  /* 4-column stats grid */
+  .grid-stats {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10;
+  }
+
+  /* Main Dashboard Partition (8/4 split) */
+  .grid-main {
+    @apply grid grid-cols-1 lg:grid-cols-12 gap-8 items-start;
+  }
+
+  .col-span-content {
+    @apply lg:col-span-8 space-y-8;
+  }
+
+  .col-span-side {
+    @apply lg:col-span-4 space-y-8;
+  }
+
+  /* Balanced Flat Grid (e.g. for services) */
+  .grid-flat {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8;
+  }
+
+  /* Centered Auth Grid */
+  .grid-auth {
+    @apply min-h-screen flex items-center justify-center p-6;
+  }
+}
+
+/* Scrollbar Style */
+::-webkit-scrollbar {
+  width: 12px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-blue-50;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-blue-200 rounded-full border-4 border-solid border-blue-50 hover:bg-blue-300;
 }

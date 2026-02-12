@@ -5,61 +5,66 @@ const clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY 
 
 const protect = async (req, res, next) => {
     let token;
+    let clerkId;
 
+    // 1. Check for Bearer Token
     if (
         req.headers.authorization &&
         req.headers.authorization.startsWith('Bearer')
     ) {
         try {
             token = req.headers.authorization.split(' ')[1];
-
-            // Verify the token with Clerk (allow 5m clock skew for dev)
             const decoded = await clerkClient.verifyToken(token, {
                 clockSkewInMs: 300000
             });
 
-
             if (!decoded) {
                 return res.status(401).json({ message: 'Not authorized, token failed' });
             }
-
-
-            // Find user in our DB by clerkId or email
-            let user = await User.findOne({ clerkId: decoded.sub });
-
-            if (!user) {
-                // Fetch user details from Clerk if not in our DB
-                const clerkUser = await clerkClient.users.getUser(decoded.sub);
-
-                // Check if user exists by email (to merge accounts if needed)
-                const email = clerkUser.emailAddresses[0]?.emailAddress;
-                user = await User.findOne({ email });
-
-                if (user) {
-                    // Update existing user with clerkId
-                    user.clerkId = decoded.sub;
-                    await user.save();
-                } else {
-                    // Create new user record
-                    user = await User.create({
-                        clerkId: decoded.sub,
-                        name: `${clerkUser.firstName} ${clerkUser.lastName}`,
-                        email: email,
-                        role: clerkUser.publicMetadata.role || 'Patient', // Default role
-                    });
-                }
-            }
-
-            req.user = user;
-            return next();
+            clerkId = decoded.sub;
         } catch (error) {
             console.error('Clerk Auth Error:', error);
-            return res.status(401).json({ message: 'Not authorized, token failed' });
+            // Don't return yet, try the fallback header if present
         }
     }
 
-    if (!token) {
-        return res.status(401).json({ message: 'Not authorized, no token' });
+    // 2. Fallback to X-Clerk-User-Id header (for internal dev convenience seen in project)
+    if (!clerkId && req.headers['x-clerk-user-id']) {
+        clerkId = req.headers['x-clerk-user-id'];
+    }
+
+    if (!clerkId) {
+        return res.status(401).json({ message: 'Not authorized, no identity found' });
+    }
+
+    try {
+        // Find user in our DB
+        let user = await User.findOne({ clerkId });
+
+        if (!user) {
+            // Fetch user details from Clerk if not in our DB
+            const clerkUser = await clerkClient.users.getUser(clerkId);
+            const email = clerkUser.emailAddresses[0]?.emailAddress;
+            user = await User.findOne({ email });
+
+            if (user) {
+                user.clerkId = clerkId;
+                await user.save();
+            } else {
+                user = await User.create({
+                    clerkId: clerkId,
+                    name: `${clerkUser.firstName} ${clerkUser.lastName}`,
+                    email: email,
+                    role: clerkUser.publicMetadata.role || 'Patient',
+                });
+            }
+        }
+
+        req.user = user;
+        return next();
+    } catch (error) {
+        console.error('User Sync Error:', error);
+        return res.status(401).json({ message: 'Not authorized, user synchronization failed' });
     }
 };
 
@@ -72,6 +77,15 @@ const authorize = (...roles) => {
     };
 };
 
-module.exports = { protect, authorize };
+const admin = authorize('Admin');
 
+const checkPermission = (perm) => {
+    return (req, res, next) => {
+        if (req.user.role === 'Admin' || (req.user.permissions && req.user.permissions.includes(perm))) {
+            return next();
+        }
+        res.status(403).json({ message: `Insufficient permissions: ${perm}` });
+    };
+};
 
+module.exports = { protect, authorize, admin, checkPermission };

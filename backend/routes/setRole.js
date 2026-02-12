@@ -10,7 +10,7 @@ const clerkClient = Clerk.clerkClient;
 router.post('/', async (req, res) => {
     const { userId, role } = req.body;
 
-    const allowedRoles = ['Patient', 'Doctor', 'Receptionist'];
+    const allowedRoles = ['Patient', 'Doctor', 'Receptionist', 'Admin', 'Nurse', 'LabTechnician', 'Pharmacist'];
     if (!allowedRoles.includes(role)) {
         return res.status(400).json({ error: 'Invalid role selection' });
     }

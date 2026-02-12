@@ -39,7 +39,7 @@ export const NotificationProvider = ({ children }) => {
                             <Zap size={24} />
                         </div>
                         <div className="flex-1">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">System Protocol Notification</p>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">System Notification</p>
                             <h4 className="font-black uppercase italic tracking-tighter text-lg">{activeAlert.title}</h4>
                             <p className="text-xs text-slate-400 font-bold">{activeAlert.message}</p>
                         </div>

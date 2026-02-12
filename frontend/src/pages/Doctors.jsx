@@ -162,14 +162,21 @@ const Doctors = () => {
                                     </div>
 
                                     <div className="pt-10 border-t border-slate-100 relative z-10">
-                                        <button
-                                            onClick={() => navigate(`/?action=book&doctorId=${doctor._id}`)}
-                                            className="w-full py-7 bg-slate-950 text-white rounded-[2.8rem] font-[1000] text-[11px] uppercase tracking-[0.5em] hover:bg-primary-600 shadow-2xl shadow-slate-900/10 hover:shadow-primary-600/20 transition-all duration-700 flex items-center justify-center gap-6 active:scale-95 group/btn italic relative overflow-hidden"
-                                        >
-                                            <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000"></div>
-                                            <Calendar size={22} className="group-hover/btn:scale-125 transition-transform" />
-                                            <span>Initialize Session Link</span>
-                                        </button>
+                                        {(user?.role !== 'Receptionist') ? (
+                                            <button
+                                                onClick={() => navigate(`/?action=book&doctorId=${doctor._id}`)}
+                                                className="w-full py-7 bg-slate-950 text-white rounded-[2.8rem] font-[1000] text-[11px] uppercase tracking-[0.5em] hover:bg-primary-600 shadow-2xl shadow-slate-900/10 hover:shadow-primary-600/20 transition-all duration-700 flex items-center justify-center gap-6 active:scale-95 group/btn italic relative overflow-hidden"
+                                            >
+                                                <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000"></div>
+                                                <Calendar size={22} className="group-hover/btn:scale-125 transition-transform" />
+                                                <span>Initialize Session Link</span>
+                                            </button>
+                                        ) : (
+                                            <div className="w-full py-7 bg-slate-100 text-slate-400 rounded-[2.8rem] font-[1000] text-[11px] uppercase tracking-[0.5em] flex items-center justify-center gap-6 italic border-2 border-dashed border-slate-200">
+                                                <ShieldCheck size={22} className="opacity-50" />
+                                                <span>Restricted Node</span>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="absolute left-0 bottom-0 w-0 h-2 bg-primary-600 group-hover:w-full transition-all duration-1000"></div>
                                 </div>

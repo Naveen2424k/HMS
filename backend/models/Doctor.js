@@ -17,5 +17,8 @@ const doctorSchema = mongoose.Schema(
     { timestamps: true }
 );
 
+doctorSchema.index({ user: 1 });
+
 const Doctor = mongoose.model('Doctor', doctorSchema);
 module.exports = Doctor;
+

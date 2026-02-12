@@ -112,6 +112,7 @@ const CustomRegister = () => {
                                         <option value="Patient">Patient</option>
                                         <option value="Doctor">Doctor</option>
                                         <option value="Receptionist">Receptionist</option>
+                                        <option value="Admin">Admin</option>
                                     </select>
                                     <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                                         <ArrowRight className="h-4 w-4 text-gray-400 rotate-90" />
@@ -153,6 +154,7 @@ const CustomRegister = () => {
                                     />
                                 </div>
                             </div>
+
 
                             <button
                                 type="submit"

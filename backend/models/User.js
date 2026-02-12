@@ -12,6 +12,13 @@ const userSchema = mongoose.Schema(
             enum: ['Admin', 'Doctor', 'Receptionist', 'Patient', 'Nurse', 'LabTechnician', 'Pharmacist'],
             required: true,
         },
+        status: {
+            type: String,
+            enum: ['Active', 'Inactive', 'Suspended'],
+            default: 'Active'
+        },
+        permissions: [String],
+        lastLogin: Date,
         resetPasswordToken: String,
         resetPasswordExpires: Date,
     },

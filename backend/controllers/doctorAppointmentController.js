@@ -32,13 +32,30 @@ const getDoctorAppointments = async (req, res) => {
     }
 };
 
+const { sendNotification } = require('../services/notificationService');
+
 const acceptAppointment = async (req, res) => {
     try {
-        const appointment = await Appointment.findById(req.params.id);
+        const appointment = await Appointment.findById(req.params.id).populate({
+            path: 'patient',
+            populate: { path: 'user' }
+        });
         if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
 
         appointment.status = 'Approved';
         await appointment.save();
+
+        // Notify Patient
+        if (appointment.patient?.user) {
+            await sendNotification(req.app, {
+                recipient: appointment.patient.user._id,
+                type: 'Appointment',
+                title: 'Appointment Approved',
+                message: 'Your appointment has been approved by the doctor. Check your dashboard for queue status.',
+                priority: 'High'
+            });
+        }
+
         res.json({ message: 'Appointment accepted', appointment });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -47,11 +64,26 @@ const acceptAppointment = async (req, res) => {
 
 const rejectAppointment = async (req, res) => {
     try {
-        const appointment = await Appointment.findById(req.params.id);
+        const appointment = await Appointment.findById(req.params.id).populate({
+            path: 'patient',
+            populate: { path: 'user' }
+        });
         if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
 
         appointment.status = 'Cancelled';
         await appointment.save();
+
+        // Notify Patient
+        if (appointment.patient?.user) {
+            await sendNotification(req.app, {
+                recipient: appointment.patient.user._id,
+                type: 'Appointment',
+                title: 'Appointment Cancelled',
+                message: 'Your appointment has been cancelled/rejected by the specialist.',
+                priority: 'Medium'
+            });
+        }
+
         res.json({ message: 'Appointment rejected', appointment });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -60,11 +92,26 @@ const rejectAppointment = async (req, res) => {
 
 const completeAppointment = async (req, res) => {
     try {
-        const appointment = await Appointment.findById(req.params.id);
+        const appointment = await Appointment.findById(req.params.id).populate({
+            path: 'patient',
+            populate: { path: 'user' }
+        });
         if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
 
         appointment.status = 'Completed';
         await appointment.save();
+
+        // Notify Patient
+        if (appointment.patient?.user) {
+            await sendNotification(req.app, {
+                recipient: appointment.patient.user._id,
+                type: 'Appointment',
+                title: 'Session Completed',
+                message: 'Your medical session has been marked as completed. Please check for prescriptions.',
+                priority: 'Medium'
+            });
+        }
+
         res.json({ message: 'Appointment marked as completed', appointment });
     } catch (error) {
         res.status(500).json({ message: error.message });
