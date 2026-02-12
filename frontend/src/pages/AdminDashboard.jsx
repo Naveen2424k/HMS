@@ -27,6 +27,9 @@ const AdminDashboard = () => {
     });
     const [users, setUsers] = useState([]);
     const [auditLogs, setAuditLogs] = useState([]);
+    const [inventory, setInventory] = useState([]);
+    const [occupancy, setOccupancy] = useState([]);
+    const [settings, setSettings] = useState({ hospitalName: '', address: '', phone: '', email: '' });
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -41,12 +44,18 @@ const AdminDashboard = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [statsRes, usersRes] = await Promise.all([
+            const [statsRes, usersRes, invRes, settingsRes, occRes] = await Promise.all([
                 api.get('/admin/dashboard'),
-                api.get('/users')
+                api.get('/users'),
+                api.get('/admin/inventory'),
+                api.get('/admin/settings'),
+                api.get('/ipd/occupancy')
             ]);
-            setStats(statsRes.data);
+            setStats(statsRes.data.stats || statsRes.data);
             setUsers(usersRes.data);
+            setInventory(invRes.data);
+            setSettings(settingsRes.data);
+            setOccupancy(occRes.data);
         } catch (error) {
             console.error('Error fetching admin data:', error);
         } finally {
@@ -114,51 +123,51 @@ const AdminDashboard = () => {
                     {/* Top Row: Title and User Info */}
                     <div className="flex flex-col sm:flex-row justify-between items-center gap-6 mb-6">
                         <div className="flex flex-col">
-                            <h1 className="text-3xl font-[1000] tracking-tighter text-slate-800 leading-none uppercase italic">
-                                <span className="text-blue-600">Admin</span> Page
+                            <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-none">
+                                <span className="text-blue-600">Admin</span> Dashboard
                             </h1>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-2">
-                                Institutional Operational Control Active
+                            <p className="text-xs text-slate-500 mt-1">
+                                Hospital Management Control Panel
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-8">
-                            <div className="flex items-center gap-4 px-6 py-3 bg-green-50 rounded-full border border-green-100">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                <span className="text-[8px] font-black uppercase tracking-widest text-green-600">System Online</span>
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg border border-green-100">
+                                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="text-[10px] font-semibold text-green-700">System Live</span>
                             </div>
                             <div className="text-right hidden sm:block">
-                                <p className="text-[10px] font-black italic text-slate-400 uppercase tracking-widest">
-                                    {clerkUser?.fullName?.toUpperCase() || 'ADMIN'}
+                                <p className="text-xs font-bold text-slate-800">
+                                    {clerkUser?.fullName || 'Admin User'}
                                 </p>
-                                <p className="text-[8px] font-black text-blue-600 uppercase tracking-widest mt-1">Super Admin</p>
+                                <p className="text-[10px] text-blue-600 font-medium mt-0.5">Administrator Account</p>
                             </div>
-                            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-blue-100 border-2 border-white ring-4 ring-blue-50">
-                                <ShieldCheck size={24} />
+                            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-100 ring-4 ring-blue-50">
+                                <ShieldCheck size={20} />
                             </div>
                         </div>
                     </div>
 
                     {/* Bottom Row: Tab Navigation */}
-                    <nav className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-100 overflow-x-auto scrollbar-hide w-full">
+                    <nav className="flex items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-100 overflow-x-auto scrollbar-hide w-full">
                         {[
-                            { id: 'overview', label: 'Oversight', icon: LayoutGrid },
-                            { id: 'identity', label: 'Identity', icon: Users },
-                            { id: 'finance', label: 'Ledger', icon: DollarSign },
-                            { id: 'resources', label: 'Resources', icon: Home },
-                            { id: 'inventory', label: 'Supply', icon: Package },
-                            { id: 'security', label: 'Audit', icon: ShieldCheck },
-                            { id: 'settings', label: 'Config', icon: Settings }
+                            { id: 'overview', label: 'Overview', icon: LayoutGrid },
+                            { id: 'identity', label: 'Users', icon: Users },
+                            { id: 'finance', label: 'Finance', icon: DollarSign },
+                            { id: 'resources', label: 'Status', icon: Home },
+                            { id: 'inventory', label: 'Inventory', icon: Package },
+                            { id: 'security', label: 'Security', icon: ShieldCheck },
+                            { id: 'settings', label: 'Settings', icon: Settings }
                         ].map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-3 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${activeTab === tab.id
                                     ? 'bg-white text-blue-600 shadow-sm border border-slate-200'
-                                    : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+                                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
                                     }`}
                             >
-                                <tab.icon size={16} />
+                                <tab.icon size={15} />
                                 {tab.label}
                             </button>
                         ))}
@@ -167,105 +176,30 @@ const AdminDashboard = () => {
             </header>
 
 
-            <main className="max-w-[1700px] mx-auto p-6 md:p-10 space-y-10">
+            <main className="max-w-[1700px] mx-auto p-6 md:p-8 space-y-8">
                 {/* KPI Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     {[
-                        {
-                            label: 'Total Patients',
-                            val: stats.totalPatients,
-                            icon: Users,
-                            bgGradient: 'from-blue-500 to-blue-600',
-                            iconBg: 'bg-blue-100',
-                            iconColor: 'text-blue-600',
-                            textColor: 'text-blue-700'
-                        },
-                        {
-                            label: 'Doctors',
-                            val: stats.totalDoctors,
-                            icon: Activity,
-                            bgGradient: 'from-indigo-500 to-indigo-600',
-                            iconBg: 'bg-indigo-100',
-                            iconColor: 'text-indigo-600',
-                            textColor: 'text-indigo-700'
-                        },
-                        {
-                            label: 'Today Revenue',
-                            val: `$${stats.todayRevenue}`,
-                            icon: DollarSign,
-                            bgGradient: 'from-emerald-500 to-emerald-600',
-                            iconBg: 'bg-emerald-100',
-                            iconColor: 'text-emerald-600',
-                            textColor: 'text-emerald-700'
-                        },
-                        {
-                            label: 'Pending Bills',
-                            val: stats.pendingBills,
-                            icon: AlertCircle,
-                            bgGradient: 'from-rose-500 to-rose-600',
-                            iconBg: 'bg-rose-100',
-                            iconColor: 'text-rose-600',
-                            textColor: 'text-rose-700'
-                        },
-                        {
-                            label: 'Staff Members',
-                            val: stats.totalStaff,
-                            icon: UserPlus,
-                            bgGradient: 'from-purple-500 to-purple-600',
-                            iconBg: 'bg-purple-100',
-                            iconColor: 'text-purple-600',
-                            textColor: 'text-purple-700'
-                        },
-                        {
-                            label: 'Monthly Revenue',
-                            val: `$${stats.monthlyRevenue}`,
-                            icon: BarChart3,
-                            bgGradient: 'from-cyan-500 to-cyan-600',
-                            iconBg: 'bg-cyan-100',
-                            iconColor: 'text-cyan-600',
-                            textColor: 'text-cyan-700'
-                        },
-                        {
-                            label: 'Bed Occupancy',
-                            val: `${stats.bedOccupancyRate}%`,
-                            icon: Home,
-                            bgGradient: 'from-orange-500 to-orange-600',
-                            iconBg: 'bg-orange-100',
-                            iconColor: 'text-orange-600',
-                            textColor: 'text-orange-700'
-                        },
-                        {
-                            label: 'Low Stock Items',
-                            val: stats.lowStockAlerts,
-                            icon: Package,
-                            bgGradient: 'from-amber-500 to-amber-600',
-                            iconBg: 'bg-amber-100',
-                            iconColor: 'text-amber-600',
-                            textColor: 'text-amber-700'
-                        }
+                        { label: 'Total Patients', val: stats.totalPatients, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+                        { label: 'Doctors', val: stats.totalDoctors, icon: Activity, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                        { label: 'Today Revenue', val: `$${stats.todayRevenue}`, icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                        { label: 'Pending Bills', val: stats.pendingBills, icon: AlertCircle, color: 'text-rose-600', bg: 'bg-rose-50' },
+                        { label: 'Employees', val: stats.totalStaff, icon: UserPlus, color: 'text-purple-600', bg: 'bg-purple-50' },
+                        { label: 'Monthly Revenue', val: `$${stats.monthlyRevenue}`, icon: BarChart3, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+                        { label: 'Bed Capacity', val: `${stats.bedOccupancyRate}%`, icon: Home, color: 'text-orange-600', bg: 'bg-orange-50' },
+                        { label: 'Stock Alerts', val: stats.lowStockAlerts, icon: Package, color: 'text-amber-600', bg: 'bg-amber-50' }
                     ].map((s, i) => (
                         <div
                             key={i}
-                            className="bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 cursor-pointer group overflow-hidden border border-slate-100"
+                            className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all group"
                         >
-                            {/* Gradient Top Border */}
-                            <div className={`h-2 bg-gradient-to-r ${s.bgGradient}`}></div>
-
-                            {/* Card Content */}
-                            <div className="p-6">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className={`${s.iconBg} p-3 rounded-xl group-hover:scale-110 transition-transform duration-300`}>
-                                        <s.icon size={28} className={s.iconColor} strokeWidth={2.5} />
-                                    </div>
-                                </div>
-
+                            <div className="flex items-center justify-between">
                                 <div className="space-y-1">
-                                    <h3 className={`text-4xl font-bold ${s.textColor} tracking-tight`}>
-                                        {s.val}
-                                    </h3>
-                                    <p className="text-sm font-medium text-slate-600">
-                                        {s.label}
-                                    </p>
+                                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{s.label}</p>
+                                    <h3 className="text-2xl font-bold text-slate-900">{s.val}</h3>
+                                </div>
+                                <div className={`${s.bg} p-2.5 rounded-lg`}>
+                                    <s.icon size={20} className={s.color} />
                                 </div>
                             </div>
                         </div>
@@ -341,39 +275,39 @@ const AdminDashboard = () => {
                     {/* Identity Registry Tab */}
                     {activeTab === 'identity' && (
                         <div className="bg-white rounded-[3rem] border border-slate-200 shadow-xl overflow-hidden">
-                            <div className="p-10 border-b border-slate-100 flex flex-col xl:flex-row justify-between items-center gap-8 bg-slate-50/50">
+                            <div className="p-8 border-b border-slate-100 flex flex-col xl:flex-row justify-between items-center gap-6 bg-slate-50/30">
                                 <div className="text-center xl:text-left">
-                                    <h3 className="text-3xl font-[1000] italic uppercase tracking-tighter text-slate-800 leading-none">Identity Registry</h3>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 italic">Access Management</p>
+                                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">Identity Registry</h3>
+                                    <p className="text-xs text-slate-500 mt-1 font-medium tracking-wide">Manage system access and permissions</p>
                                 </div>
                                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full xl:w-auto">
-                                    <div className="relative w-full sm:w-80">
-                                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                    <div className="relative w-full sm:w-72">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                                         <input
                                             type="text"
-                                            placeholder="SEARCH..."
+                                            placeholder="Search users..."
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full pl-14 pr-6 py-4 bg-white border-2 border-slate-100 rounded-2xl focus:border-blue-600 outline-none font-bold text-[10px] uppercase tracking-widest transition-all"
+                                            className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg focus:border-blue-500 outline-none text-sm font-medium transition-all"
                                         />
                                     </div>
                                     <button
                                         onClick={() => setIsAddModalOpen(true)}
-                                        className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black uppercase italic tracking-widest flex items-center gap-3 shadow-lg hover:shadow-blue-200 active:scale-95 transition-all text-xs whitespace-nowrap"
+                                        className="h-10 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold flex items-center gap-2 shadow-md hover:shadow-blue-200 active:scale-95 transition-all text-xs whitespace-nowrap"
                                     >
-                                        <Plus size={18} /> Add User
+                                        <Plus size={16} /> Add New User
                                     </button>
                                 </div>
                             </div>
 
                             <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
                                 <table className="w-full text-left">
-                                    <thead className="bg-white sticky top-0 z-10 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] italic border-b border-slate-100">
+                                    <thead className="bg-slate-50 sticky top-0 z-10 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
                                         <tr>
-                                            <th className="px-10 py-6">Name</th>
-                                            <th className="px-10 py-6">Email</th>
-                                            <th className="px-10 py-6 text-center">Role</th>
-                                            <th className="px-10 py-6 text-right">Actions</th>
+                                            <th className="px-8 py-4">Full Identity</th>
+                                            <th className="px-8 py-4">Communication</th>
+                                            <th className="px-8 py-4 text-center">Authorization</th>
+                                            <th className="px-8 py-4 text-right">Operations</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -405,25 +339,25 @@ const AdminDashboard = () => {
                                             u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                             u.email?.toLowerCase().includes(searchTerm.toLowerCase())
                                         ).map((u) => (
-                                            <tr key={u._id} className="hover:bg-blue-50/20 transition-colors group">
-                                                <td className="px-10 py-6">
+                                            <tr key={u._id} className="hover:bg-blue-50/10 transition-colors group border-b border-slate-50 last:border-0 font-medium">
+                                                <td className="px-8 py-4">
                                                     <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 bg-slate-100 text-slate-500 rounded-xl flex items-center justify-center font-black text-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner">
+                                                        <div className="w-10 h-10 bg-slate-100 text-slate-600 rounded-lg flex items-center justify-center font-bold text-sm group-hover:bg-blue-600 group-hover:text-white transition-all">
                                                             {u.name?.charAt(0)}
                                                         </div>
                                                         <div>
-                                                            <span className="font-black text-lg text-slate-700 uppercase italic tracking-tighter block">{u.name}</span>
-                                                            <span className="text-[10px] font-black text-slate-400">ID: {u._id.slice(-8).toUpperCase()}</span>
+                                                            <span className="font-bold text-slate-900 block text-sm">{u.name}</span>
+                                                            <span className="text-[10px] text-slate-400 uppercase font-medium">#{u._id.slice(-6)}</span>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-6 font-bold text-slate-400 text-xs italic">{u.email}</td>
-                                                <td className="px-10 py-6 text-center">
-                                                    <div className="flex items-center justify-center gap-4">
-                                                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.15em] shadow-sm ${u.role === 'Admin' ? 'bg-blue-900 text-white' :
+                                                <td className="px-8 py-4 text-xs font-medium text-slate-500">{u.email}</td>
+                                                <td className="px-8 py-4 text-center">
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wide ${u.role === 'Admin' ? 'bg-slate-900 text-white' :
                                                             u.role === 'Doctor' ? 'bg-indigo-600 text-white' :
-                                                                u.role === 'Receptionist' ? 'bg-blue-100 text-blue-600' :
-                                                                    u.role === 'Nurse' ? 'bg-emerald-100 text-emerald-600' :
+                                                                u.role === 'Receptionist' ? 'bg-blue-100 text-blue-700' :
+                                                                    u.role === 'Nurse' ? 'bg-emerald-100 text-emerald-700' :
                                                                         'bg-slate-100 text-slate-600'
                                                             }`}>
                                                             {u.role}
@@ -432,7 +366,7 @@ const AdminDashboard = () => {
                                                             value={u.role}
                                                             onChange={(e) => handleRoleUpdate(u._id, e.target.value)}
                                                             disabled={processingId === u._id}
-                                                            className="bg-transparent border-0 opacity-0 group-hover:opacity-100 focus:opacity-100 text-[10px] font-black uppercase tracking-widest cursor-pointer text-blue-600 hover:underline outline-none transition-all w-24"
+                                                            className="bg-transparent border-0 opacity-0 group-hover:opacity-100 focus:opacity-100 text-[10px] font-bold uppercase text-blue-600 cursor-pointer hover:underline outline-none transition-all"
                                                         >
                                                             {['Patient', 'Doctor', 'Admin', 'Receptionist', 'Nurse', 'LabTechnician', 'Pharmacist'].map(r =>
                                                                 <option key={r} value={r} className="text-slate-900">{r}</option>
@@ -440,13 +374,13 @@ const AdminDashboard = () => {
                                                         </select>
                                                     </div>
                                                 </td>
-                                                <td className="px-10 py-6 text-right">
+                                                <td className="px-8 py-4 text-right">
                                                     <button
                                                         onClick={() => handleDeleteUser(u._id, u.name)}
                                                         disabled={processingId === u._id || u.email === clerkUser?.emailAddresses[0]?.emailAddress}
-                                                        className="p-3 text-red-300 hover:bg-rose-500 hover:text-white rounded-xl transition-all disabled:opacity-0 group-hover:opacity-100 opacity-0 active:scale-95"
+                                                        className="p-2 text-slate-300 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                                                     >
-                                                        <Trash2 size={20} />
+                                                        <Trash2 size={16} />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -459,50 +393,181 @@ const AdminDashboard = () => {
 
                     {/* Security Audit Tab */}
                     {activeTab === 'security' && (
-                        <div className="bg-white rounded-[3rem] border border-slate-200 shadow-xl p-10 space-y-10">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <h3 className="text-3xl font-[1000] italic uppercase tracking-tighter text-slate-800 leading-none">Security Audit</h3>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 italic">Activity Log</p>
+                                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">Security Audit</h3>
+                                    <p className="text-xs text-slate-500 mt-1 font-medium italic">Operational Activity Logs</p>
                                 </div>
-                                <button onClick={fetchAuditLogs} className="p-4 bg-slate-50 hover:bg-slate-100 rounded-2xl transition-all">
-                                    <RefreshCw size={24} className="text-blue-600" />
+                                <button onClick={fetchAuditLogs} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg transition-all border border-slate-200">
+                                    <RefreshCw size={18} className="text-blue-600" />
                                 </button>
                             </div>
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                 {auditLogs.length > 0 ? auditLogs.map((log, i) => (
-                                    <div key={i} className="flex gap-6 p-6 bg-slate-50 border border-slate-100 rounded-3xl hover:bg-white transition-all group">
-                                        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm border border-slate-100 shrink-0 group-hover:scale-110 transition-transform">
-                                            <ShieldCheck size={28} />
+                                    <div key={i} className="flex gap-4 p-4 bg-slate-50/50 border border-slate-100 rounded-xl hover:bg-white transition-all group hover:shadow-sm">
+                                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-500 shadow-sm border border-slate-100 shrink-0">
+                                            <ShieldCheck size={18} />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{log.action}</p>
-                                                <p className="text-[9px] font-black text-slate-400 uppercase">{new Date(log.createdAt).toLocaleString()}</p>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wide">{log.action}</p>
+                                                <p className="text-[9px] font-medium text-slate-400">{new Date(log.createdAt).toLocaleString()}</p>
                                             </div>
-                                            <p className="text-sm font-bold text-slate-700 uppercase italic truncate">{log.target}</p>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase mt-2 italic">
-                                                Actor: {log.actorName || 'System ID: ' + log.actor?.slice(-6)}
+                                            <p className="text-sm font-semibold text-slate-800 truncate">{log.target}</p>
+                                            <p className="text-[10px] text-slate-400 mt-1">
+                                                Actor: {log.actorName || 'ID: ' + log.actor?.slice(-6)}
                                             </p>
                                         </div>
                                     </div>
                                 )) : (
-                                    <div className="text-center py-20 text-slate-300 font-black uppercase italic">
-                                        No Audit Logs Available
+                                    <div className="text-center py-12 text-slate-400 font-medium text-sm">
+                                        No logs available
                                     </div>
                                 )}
                             </div>
                         </div>
                     )}
 
-                    {/* Placeholder Tabs */}
-                    {['finance', 'resources', 'inventory', 'settings'].includes(activeTab) && (
-                        <div className="bg-white rounded-[3rem] border border-slate-200 shadow-xl p-20 text-center space-y-6">
-                            <Binary size={80} className="mx-auto text-blue-100" />
-                            <h3 className="text-4xl font-black italic uppercase tracking-tighter text-slate-800">Module In Development</h3>
-                            <p className="text-slate-400 font-bold max-w-sm mx-auto uppercase text-xs tracking-widest leading-relaxed">
-                                {activeTab.toUpperCase()} module deployment in progress...
-                            </p>
+                    {/* Resources Tab */}
+                    {activeTab === 'resources' && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Facility Status</h3>
+                                <p className="text-xs text-slate-500 mt-1 font-medium italic tracking-wide">Live Ward & Bed Occupancy</p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {occupancy.map(ward => (
+                                    <div key={ward._id} className="p-6 bg-slate-50/50 border border-slate-100 rounded-2xl space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <h4 className="font-bold text-slate-800 text-sm tracking-tight">{ward.name}</h4>
+                                            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100 uppercase tracking-wider">{ward.beds?.filter(b => b.status === 'Occupied').length}/{ward.capacity} Beds</span>
+                                        </div>
+                                        <div className="grid grid-cols-6 sm:grid-cols-8 lg:grid-cols-10 gap-2">
+                                            {ward.beds?.map(bed => (
+                                                <div
+                                                    key={bed._id}
+                                                    title={`Bed ${bed.bedNumber} - ${bed.status}`}
+                                                    className={`aspect-square rounded-lg border flex items-center justify-center transition-all cursor-help text-[10px] font-bold ${bed.status === 'Occupied'
+                                                        ? 'bg-blue-600 border-blue-700 text-white shadow-sm'
+                                                        : 'bg-white border-slate-200 text-slate-300 hover:border-blue-300'
+                                                        }`}
+                                                >
+                                                    {bed.bedNumber}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Finance Tab */}
+                    {activeTab === 'finance' && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8">
+                            <h3 className="text-xl font-bold text-slate-900 tracking-tight">Proceeds & Accruals</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="p-6 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-2">Daily Revenue</p>
+                                    <h4 className="text-3xl font-bold text-emerald-900 tracking-tighter">${stats.todayRevenue.toLocaleString()}</h4>
+                                </div>
+                                <div className="p-6 bg-blue-50/50 rounded-2xl border border-blue-100">
+                                    <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-2">Monthly Accruals</p>
+                                    <h4 className="text-3xl font-bold text-blue-900 tracking-tighter">${stats.monthlyRevenue.toLocaleString()}</h4>
+                                </div>
+                                <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Awaiting Payment</p>
+                                    <h4 className="text-3xl font-bold text-slate-900 tracking-tighter">{stats.pendingBills}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Inventory Tab */}
+                    {activeTab === 'inventory' && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="p-8 border-b border-slate-100 bg-slate-50/30">
+                                <h3 className="text-xl font-bold text-slate-900 tracking-tight">Supplies & Stock</h3>
+                                <p className="text-xs text-slate-500 mt-1 font-medium italic">Asset Inventory Management</p>
+                            </div>
+                            <div className="p-8 overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="text-[10px] font-bold uppercase text-slate-400 border-b border-slate-100">
+                                        <tr>
+                                            <th className="pb-4">Asset Name</th>
+                                            <th className="pb-4">Category</th>
+                                            <th className="pb-4 text-center">In-Stock</th>
+                                            <th className="pb-4 text-right">Condition</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {inventory.map(item => (
+                                            <tr key={item._id} className="group hover:bg-blue-50/10 transition-all font-medium">
+                                                <td className="py-4 font-bold text-slate-800 text-sm italic">{item.itemName}</td>
+                                                <td className="py-4 text-slate-500 text-[10px] uppercase font-bold tracking-wide">{item.category}</td>
+                                                <td className="py-4 text-center text-slate-700 text-sm font-bold">{item.quantity} {item.unit}</td>
+                                                <td className="py-4 text-right">
+                                                    <span className={`px-3 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wide ${item.quantity < 10 ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                        {item.quantity < 10 ? 'Low Stock' : 'Stable'}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Settings Tab */}
+                    {activeTab === 'settings' && (
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-8">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900 tracking-tight">System Parameters</h3>
+                                <p className="text-xs text-slate-500 mt-1 font-medium italic">General Facility Configuration</p>
+                            </div>
+                            <div className="max-w-3xl space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-500 ml-1">Facility Name</label>
+                                        <input
+                                            value={settings.hospitalName}
+                                            onChange={(e) => setSettings({ ...settings, hospitalName: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-blue-500 outline-none text-sm font-semibold transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-500 ml-1">Contact Details</label>
+                                        <input
+                                            value={settings.phone}
+                                            onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-blue-500 outline-none text-sm font-semibold transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[11px] font-bold text-slate-500 ml-1">Geographic Address</label>
+                                    <input
+                                        value={settings.address}
+                                        onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-blue-500 outline-none text-sm font-semibold transition-all"
+                                    />
+                                </div>
+                                <div className="pt-4">
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await api.put('/admin/settings', settings);
+                                                alert('Settings Synchronized');
+                                            } catch (err) { alert('Update Failed'); }
+                                        }}
+                                        className="px-8 py-3 bg-slate-900 text-white rounded-lg font-bold hover:bg-slate-800 active:scale-95 transition-all text-sm shadow-md"
+                                    >
+                                        Save Configuration
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -510,71 +575,73 @@ const AdminDashboard = () => {
 
             {/* Add User Modal */}
             {isAddModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-white rounded-[4rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 border-[12px] border-slate-50">
-                        <div className="bg-blue-600 p-10 text-white flex justify-between items-center">
-                            <div className="flex items-center gap-6">
-                                <div className="p-4 bg-white/20 rounded-2xl"><UserPlus size={36} /></div>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                        <div className="bg-blue-600 p-6 text-white flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <div className="p-2 bg-white/20 rounded-lg"><UserPlus size={24} /></div>
                                 <div>
-                                    <h3 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Add User</h3>
-                                    <p className="text-blue-100 text-[10px] font-black uppercase tracking-widest mt-2">New Account</p>
+                                    <h3 className="text-xl font-bold tracking-tight">Create New User</h3>
+                                    <p className="text-blue-100 text-[10px] font-semibold uppercase tracking-wider">System Registry Access</p>
                                 </div>
                             </div>
-                            <X onClick={() => setIsAddModalOpen(false)} className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl cursor-pointer transition-all" size={44} />
+                            <X onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-white/20 rounded-lg cursor-pointer transition-all" size={36} />
                         </div>
-                        <form onSubmit={handleAddUser} className="p-12 space-y-8">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Full Name</label>
+                        <form onSubmit={handleAddUser} className="p-8 space-y-5">
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-slate-500 ml-1">Full Name</label>
                                 <input
                                     required
                                     type="text"
-                                    placeholder="FULL NAME"
+                                    placeholder="e.g. John Doe"
                                     value={newUser.name}
                                     onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                                    className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-[2rem] font-black uppercase text-lg outline-none transition-all placeholder:opacity-30"
+                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-blue-500 outline-none text-sm font-semibold transition-all"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Email</label>
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-slate-500 ml-1">Email Address</label>
                                 <input
                                     required
                                     type="email"
-                                    placeholder="EMAIL@HOSPITAL.COM"
+                                    placeholder="john@hospital.com"
                                     value={newUser.email}
                                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                                    className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-[2rem] font-black uppercase text-lg outline-none transition-all placeholder:opacity-30"
+                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-blue-500 outline-none text-sm font-semibold transition-all"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Password</label>
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-slate-500 ml-1">Secure Password</label>
                                 <input
                                     required
                                     type="password"
-                                    placeholder="MIN 8 CHARACTERS"
+                                    placeholder="••••••••"
                                     value={newUser.password}
                                     onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                                    className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-[2rem] font-black text-lg outline-none transition-all"
+                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-blue-500 outline-none text-sm font-semibold transition-all"
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-3">Role</label>
+                            <div className="space-y-1.5">
+                                <label className="text-[11px] font-bold text-slate-500 ml-1">Account Role</label>
                                 <select
                                     value={newUser.role}
                                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                                    className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-blue-600 rounded-[2rem] font-black uppercase text-lg outline-none transition-all cursor-pointer appearance-none"
+                                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:border-blue-500 outline-none text-sm font-semibold transition-all cursor-pointer appearance-none"
                                 >
                                     {['Patient', 'Doctor', 'Admin', 'Receptionist', 'Nurse', 'LabTechnician', 'Pharmacist'].map(r =>
                                         <option key={r} value={r}>{r}</option>
                                     )}
                                 </select>
                             </div>
-                            <button
-                                type="submit"
-                                disabled={processingId === 'new'}
-                                className="w-full bg-blue-600 py-6 rounded-[2rem] text-white font-[1000] italic uppercase tracking-[0.3em] shadow-2xl shadow-blue-200 hover:bg-blue-700 active:scale-95 transition-all text-xl"
-                            >
-                                {processingId === 'new' ? 'Creating...' : 'Create User'}
-                            </button>
+                            <div className="pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={processingId === 'new'}
+                                    className="w-full bg-blue-600 py-3 rounded-lg text-white font-bold shadow-lg shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all text-sm"
+                                >
+                                    {processingId === 'new' ? 'Processing...' : 'Register User'}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>

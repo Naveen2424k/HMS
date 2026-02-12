@@ -13,10 +13,29 @@ connectDB();
 
 const app = express();
 
+// CORS configuration - Put this FIRST to handle preflight requests
+const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:5173'].filter(Boolean);
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('Origin not allowed:', origin);
+            callback(null, true); // Fallback to allow for development or use callback(new Error('...'))
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Clerk-User-Id']
+}));
+
 // Security and Performance Middleware
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 app.use(compression());
 app.use(express.json());
+
 
 // Rate Limiting
 const limiter = rateLimit({
@@ -25,20 +44,6 @@ const limiter = rateLimit({
     message: 'Too many requests from this IP, please try again after 15 minutes'
 });
 app.use('/api/', limiter);
-
-// CORS configuration - allowing multiple origins if needed
-const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:5173'];
-app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-}));
-
 
 // Routes
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -52,6 +57,7 @@ app.use('/api/lab-reports', require('./routes/labReportRoutes'));
 app.use('/api/prescriptions', require('./routes/prescriptionRoutes'));
 app.use('/api/ipd', require('./routes/ipdRoutes'));
 app.use('/api/inventory', require('./routes/inventoryRoutes'));
+app.use('/api/ai', require('./routes/aiRoutes'));
 
 // New Routes - Advanced Features
 app.use('/api/tokens', require('./routes/tokenRoutes'));

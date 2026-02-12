@@ -7,9 +7,13 @@ const {
     completeAppointment
 } = require('../controllers/doctorAppointmentController');
 
+const { protect, authorize } = require('../middleware/authMiddleware');
+
+router.use(protect);
+
 router.get('/', getDoctorAppointments);
-router.put('/:id/accept', acceptAppointment);
-router.put('/:id/reject', rejectAppointment);
-router.put('/:id/complete', completeAppointment);
+router.put('/:id/accept', authorize('Doctor'), acceptAppointment);
+router.put('/:id/reject', authorize('Doctor'), rejectAppointment);
+router.put('/:id/complete', authorize('Doctor'), completeAppointment);
 
 module.exports = router;

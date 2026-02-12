@@ -114,3 +114,13 @@ exports.updateSettings = async (req, res) => {
         res.status(500).json({ message: 'Settings update failed' });
     }
 };
+
+// @desc    Inventory Management
+exports.getInventory = async (req, res) => {
+    try {
+        const inventory = await Inventory.find().sort({ quantity: 1 });
+        res.json(inventory);
+    } catch (error) {
+        res.status(500).json({ message: 'Inventory retrieval failed' });
+    }
+};

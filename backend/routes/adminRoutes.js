@@ -1,23 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, admin, authorize } = require('../middleware/authMiddleware');
 const {
     getAdminDashboard,
     getAuditLogs,
     toggleUserStatus,
     getSettings,
-    updateSettings
+    updateSettings,
+    getInventory
 } = require('../controllers/adminController');
 
 router.use(protect);
-router.use(admin);
 
-router.get('/dashboard', getAdminDashboard);
-router.get('/audit-logs', getAuditLogs);
-router.patch('/users/:id/status', toggleUserStatus);
+// Allow Receptionist to see stats for their dashboard too
+router.get('/dashboard', authorize('Admin', 'Receptionist'), getAdminDashboard);
+
+// Keep these strictly for Admin
+router.get('/audit-logs', admin, getAuditLogs);
+router.get('/inventory', admin, getInventory);
+router.patch('/users/:id/status', admin, toggleUserStatus);
 
 router.route('/settings')
-    .get(getSettings)
-    .put(updateSettings);
+    .get(admin, getSettings)
+    .put(admin, updateSettings);
 
 module.exports = router;

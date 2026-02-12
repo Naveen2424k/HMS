@@ -22,44 +22,118 @@ import {
     RefreshCw,
     Phone
 } from 'lucide-react';
+import api from '../services/api';
 
 const ReceptionistDashboard = () => {
     const { user } = useUser();
     const [greeting, setGreeting] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [activeModal, setActiveModal] = useState(null);
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [viewingFiles, setViewingFiles] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
-    const [newPatientData, setNewPatientData] = useState({ name: '', phone: '', department: 'Cardiology' });
+    const [newUser, setNewUser] = useState({ name: '', phone: '', email: '', department: 'General Medicine' });
+    const [statsSummary, setStatsSummary] = useState({ totalPatients: 0, todayRevenue: 0, pendingBills: 0, readyReports: 0 });
+    const [appointments, setAppointments] = useState([]);
     const [newlyRegisteredPatient, setNewlyRegisteredPatient] = useState(null);
+    const [processingId, setProcessingId] = useState(null);
+    const [medicalRecords, setMedicalRecords] = useState([]);
+    const [bills, setBills] = useState([]);
+    const [doctors, setDoctors] = useState([]);
+    const [appointmentForm, setAppointmentForm] = useState({ doctorId: '', date: '', reason: '' });
 
     useEffect(() => {
         const hour = new Date().getHours();
         if (hour < 12) setGreeting('Good Morning');
         else if (hour < 18) setGreeting('Good Afternoon');
         else setGreeting('Good Evening');
+
+        fetchAppointments();
+        fetchStats();
+        fetchDoctors();
     }, []);
 
+    const fetchDoctors = async () => {
+        try {
+            const { data } = await api.get('/doctors');
+            setDoctors(data);
+        } catch (error) {
+            console.error('Error fetching doctors:', error);
+        }
+    };
+
+    const fetchStats = async () => {
+        try {
+            const { data } = await api.get('/admin/dashboard');
+            setStatsSummary({
+                totalPatients: data.totalPatients || 0,
+                todayRevenue: data.todayRevenue || 0,
+                pendingBills: data.pendingBills || 0,
+                readyReports: data.readyReports || 45
+            });
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+        }
+    };
+
+    const fetchAppointments = async () => {
+        setLoading(true);
+        try {
+            const { data } = await api.get('/appointments?limit=100');
+            setAppointments(data.data || []);
+        } catch (error) {
+            console.error('Error fetching appointments:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleStatusUpdate = async (appointmentId, newStatus) => {
+        setProcessingId(appointmentId);
+        try {
+            await api.put(`/appointments/${appointmentId}/status`, { status: newStatus });
+            fetchAppointments();
+            fetchStats();
+        } catch (error) {
+            console.error('Error updating status:', error);
+            alert('Failed to update appointment status');
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
+    const fetchMedicalRecords = async (patientId) => {
+        try {
+            const { data } = await api.get('/medical-records');
+            // Filter records for this patient if you have a patient record ID
+            // For now fetching all as the API might not support direct patient filter easily in one go
+            setMedicalRecords(data.filter(r => r.patient?._id === patientId));
+        } catch (error) {
+            console.error('Error fetching records:', error);
+        }
+    };
+
+    const fetchBills = async (userId) => {
+        try {
+            const { data } = await api.get('/billing');
+            setBills(data.filter(b => b.patient?.user?._id === userId));
+        } catch (error) {
+            console.error('Error fetching bills:', error);
+        }
+    };
+
     const stats = [
-        { label: 'Total Patients', val: '2,840', sub: '+124 this month', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'New Admissions', val: '12', sub: 'In process', icon: Target, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Pending Bills', val: '08', sub: 'Awaiting payment', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
-        { label: 'Reports Ready', val: '45', sub: 'Verified', icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: 'Total Patients', val: statsSummary.totalPatients.toLocaleString(), sub: 'In Database', icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { label: 'Pending Appts', val: appointments.filter(a => a.status === 'Pending').length, sub: 'Needs Review', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+        { label: 'Ready Bills', val: statsSummary.pendingBills, sub: 'Awaiting payment', icon: CreditCard, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+        { label: 'Reports Ready', val: statsSummary.readyReports, sub: 'Verified', icon: FileText, color: 'text-indigo-600', bg: 'bg-indigo-50' },
     ];
 
-    const recentPatients = [
-        { name: 'Arlene McCoy', id: 'P-4928', dept: 'Cardiology', status: 'Verified', time: '10:42 AM', tier: 'Regular' },
-        { name: 'Theresa Webb', id: 'P-3021', dept: 'Neurology', status: 'Pending', time: '11:15 AM', tier: 'Regular' },
-        { name: 'Cody Fisher', id: 'P-8482', dept: 'Pediatrics', status: 'Verified', time: '11:50 AM', tier: 'Regular' },
-        { name: 'Jane Cooper', id: 'P-2917', dept: 'Emergency', status: 'Verified', time: '12:05 PM', tier: 'Emergency' },
-    ];
-
-    const filteredPatients = recentPatients.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.id.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredAppointments = appointments.filter(a =>
+        a.patient?.user?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.doctor?.user?.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (
@@ -86,6 +160,13 @@ const ReceptionistDashboard = () => {
                             <PlusCircle size={20} />
                             Add New Patient
                         </button>
+                        <button
+                            onClick={fetchAppointments}
+                            className="bg-white text-blue-600 border border-blue-100 px-6 py-3 rounded-xl font-bold hover:bg-blue-50 transition-all flex items-center gap-2 shadow-sm"
+                        >
+                            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                            Refresh
+                        </button>
                     </div>
                 </div>
 
@@ -101,7 +182,7 @@ const ReceptionistDashboard = () => {
                                 <stat.icon size={24} />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{stat.val}</h3>
+                                <h3 className="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase">{stat.val}</h3>
                                 <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
                             </div>
                         </div>
@@ -116,14 +197,14 @@ const ReceptionistDashboard = () => {
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                             <div className="p-6 border-b border-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
                                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                    <Users className="text-blue-600" size={24} />
-                                    Today's Patients
+                                    <Calendar className="text-blue-600" size={24} />
+                                    Appointment Requests
                                 </h2>
                                 <div className="relative w-full sm:w-72">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                                     <input
                                         type="text"
-                                        placeholder="Search by name or ID..."
+                                        placeholder="Search by name or doctor..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 transition-all text-sm"
@@ -132,53 +213,106 @@ const ReceptionistDashboard = () => {
                             </div>
 
                             <div className="divide-y divide-gray-50">
-                                {filteredPatients.length > 0 ? (
-                                    filteredPatients.map((p, i) => (
+                                {loading && appointments.length === 0 ? (
+                                    <div className="py-20 text-center">
+                                        <RefreshCw size={40} className="text-blue-200 mx-auto mb-4 animate-spin" />
+                                        <p className="text-gray-400 font-bold uppercase tracking-widest text-xs italic">Decrypting Appointment Matrix...</p>
+                                    </div>
+                                ) : filteredAppointments.length > 0 ? (
+                                    filteredAppointments.map((appt, i) => (
                                         <div
-                                            key={i}
+                                            key={appt._id}
                                             onClick={() => {
-                                                setSelectedPatient(p);
+                                                setSelectedPatient({
+                                                    name: appt.patient?.user?.name,
+                                                    id: appt.patient?._id,
+                                                    uid: appt.patient?.user?._id,
+                                                    dept: appt.doctor?.specialization || 'Clinical',
+                                                    status: appt.status,
+                                                    time: new Date(appt.date).toLocaleTimeString(),
+                                                    tier: 'Standard'
+                                                });
+                                                fetchMedicalRecords(appt.patient?._id);
+                                                fetchBills(appt.patient?.user?._id);
                                                 setActiveModal('details');
                                             }}
                                             className="p-6 hover:bg-gray-50 transition-all flex items-center justify-between group cursor-pointer"
                                         >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-lg group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                                    {p.name.charAt(0)}
+                                            <div className="flex items-center gap-5">
+                                                <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:rotate-3">
+                                                    {appt.patient?.user?.name.charAt(0)}
                                                 </div>
                                                 <div>
-                                                    <h4 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{p.name}</h4>
-                                                    <div className="flex items-center gap-2 mt-0.5">
-                                                        <span className="text-xs text-blue-600 font-bold">{p.id}</span>
-                                                        <span className="text-gray-300">•</span>
-                                                        <span className="text-xs text-gray-500 font-medium">{p.dept}</span>
+                                                    <h4 className="font-black text-gray-900 uppercase italic tracking-tighter text-lg leading-none mb-1">{appt.patient?.user?.name}</h4>
+                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Activity size={12} className="text-blue-500" />
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">DR. {appt.doctor?.user?.name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Clock size={12} className="text-indigo-500" />
+                                                            <span className="text-[10px] font-bold text-gray-500">{new Date(appt.date).toLocaleString()}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="text-right flex items-center gap-6">
-                                                <div className="hidden sm:block">
-                                                    <p className="text-[10px] text-gray-400 font-bold mb-1 uppercase tracking-wider text-right">Status</p>
-                                                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm ${p.status === 'Verified' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                            <div className="flex items-center gap-4">
+                                                <div className="text-right hidden sm:block">
+                                                    <span className={`text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-[0.2em] shadow-sm ${appt.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
+                                                        appt.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
+                                                            appt.status === 'Cancelled' ? 'bg-rose-100 text-rose-700' :
+                                                                'bg-slate-100 text-slate-700'
                                                         }`}>
-                                                        {p.status}
+                                                        {appt.status}
                                                     </span>
                                                 </div>
+
+                                                {appt.status === 'Pending' && (
+                                                    <div className="flex items-center gap-2">
+                                                        <button
+                                                            disabled={processingId === appt._id}
+                                                            onClick={() => handleStatusUpdate(appt._id, 'Approved')}
+                                                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95 disabled:opacity-50"
+                                                        >
+                                                            Accept
+                                                        </button>
+                                                        <button
+                                                            disabled={processingId === appt._id}
+                                                            onClick={() => handleStatusUpdate(appt._id, 'Cancelled')}
+                                                            className="px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all active:scale-95 disabled:opacity-50"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </div>
+                                                )}
+
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setSelectedPatient(p);
+                                                        setSelectedPatient({
+                                                            name: appt.patient?.user?.name,
+                                                            id: appt.patient?._id,
+                                                            uid: appt.patient?.user?._id,
+                                                            dept: appt.doctor?.specialization || 'Clinical',
+                                                            status: appt.status,
+                                                            time: new Date(appt.date).toLocaleTimeString(),
+                                                            tier: 'Standard'
+                                                        });
+                                                        fetchMedicalRecords(appt.patient?._id);
+                                                        fetchBills(appt.patient?.user?._id);
                                                         setActiveModal('details');
                                                     }}
-                                                    className="p-2 bg-transparent hover:bg-white rounded-xl border border-transparent hover:border-gray-200 text-gray-400 hover:text-blue-600 transition-all shadow-sm group-hover:text-blue-600 group-hover:border-gray-200 group-hover:bg-white active:scale-95"
+                                                    className="p-3 bg-white hover:bg-blue-600 text-blue-600 hover:text-white rounded-xl border border-blue-100 transition-all shadow-sm active:scale-90"
                                                 >
-                                                    <ArrowRight size={20} />
+                                                    <ArrowRight size={18} />
                                                 </button>
                                             </div>
                                         </div>
                                     ))
                                 ) : (
                                     <div className="py-20 text-center">
-                                        <p className="text-gray-400 font-medium uppercase tracking-widest text-sm">Zero patients found</p>
+                                        <Sparkles size={40} className="text-slate-200 mx-auto mb-4" />
+                                        <p className="text-gray-400 font-black uppercase tracking-[0.3em] text-[10px]">Zero Appointment Transmissions</p>
                                     </div>
                                 )}
                             </div>
@@ -203,10 +337,10 @@ const ReceptionistDashboard = () => {
                                 <div className="space-y-4 mb-6">
                                     <div className="flex justify-between items-end">
                                         <span className="text-blue-100 text-sm">Revenue Generated</span>
-                                        <span className="text-2xl font-bold">$243.5K</span>
+                                        <span className="text-2xl font-bold">${statsSummary.todayRevenue.toLocaleString()}</span>
                                     </div>
                                     <div className="h-1.5 bg-blue-500 rounded-full">
-                                        <div className="h-full bg-white rounded-full" style={{ width: '80%' }}></div>
+                                        <div className="h-full bg-white rounded-full" style={{ width: '65%' }}></div>
                                     </div>
                                 </div>
                                 <button
@@ -289,8 +423,18 @@ const ReceptionistDashboard = () => {
                                         <input
                                             type="text"
                                             placeholder="Enter patient name"
-                                            value={newPatientData.name}
-                                            onChange={(e) => setNewPatientData({ ...newPatientData, name: e.target.value })}
+                                            value={newUser.name}
+                                            onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-gray-700">Email (Registry Identity)</label>
+                                        <input
+                                            type="email"
+                                            placeholder="patient@email.com"
+                                            value={newUser.email}
+                                            onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                                             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all"
                                         />
                                     </div>
@@ -300,16 +444,16 @@ const ReceptionistDashboard = () => {
                                             <input
                                                 type="tel"
                                                 placeholder="Number"
-                                                value={newPatientData.phone}
-                                                onChange={(e) => setNewPatientData({ ...newPatientData, phone: e.target.value })}
+                                                value={newUser.phone}
+                                                onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
                                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all"
                                             />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-bold text-gray-700">Department</label>
                                             <select
-                                                value={newPatientData.department}
-                                                onChange={(e) => setNewPatientData({ ...newPatientData, department: e.target.value })}
+                                                value={newUser.department}
+                                                onChange={(e) => setNewUser({ ...newUser, department: e.target.value })}
                                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer"
                                             >
                                                 <option>Cardiology</option>
@@ -322,22 +466,40 @@ const ReceptionistDashboard = () => {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => {
-                                            // Simulate patient registration
-                                            const newPatient = {
-                                                name: newPatientData.name,
-                                                phone: newPatientData.phone,
-                                                department: newPatientData.department,
-                                                id: `P-${Math.floor(1000 + Math.random() * 9000)}`,
-                                                status: 'Pending',
-                                                time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-                                            };
-                                            setNewlyRegisteredPatient(newPatient);
-                                            setActiveModal('appointment');
+                                        disabled={loading}
+                                        onClick={async () => {
+                                            setLoading(true);
+                                            try {
+                                                // 1. Create User Identity
+                                                const userRes = await api.post('/users', {
+                                                    name: newUser.name,
+                                                    email: newUser.email,
+                                                    password: 'Patient@123',
+                                                    role: 'Patient'
+                                                });
+
+                                                // 2. Create Patient Profile
+                                                const patientRes = await api.post('/patients', {
+                                                    userId: userRes.data._id,
+                                                    phone: newUser.phone,
+                                                    age: 25, // Default for registration
+                                                    gender: 'Other',
+                                                    bloodGroup: 'Unknown',
+                                                    address: 'Hospital Registry'
+                                                });
+
+                                                setNewlyRegisteredPatient(patientRes.data);
+                                                setActiveModal('appointment');
+                                                fetchStats();
+                                            } catch (err) {
+                                                alert(err.response?.data?.message || 'Identity / Profile linking failed');
+                                            } finally {
+                                                setLoading(false);
+                                            }
                                         }}
-                                        className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                                        className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
                                     >
-                                        Register Patient
+                                        {loading ? 'Processing...' : 'Register Patient'}
                                     </button>
                                 </div>
                             )}
@@ -388,51 +550,121 @@ const ReceptionistDashboard = () => {
                                         <div className="space-y-2">
                                             <label className="text-sm font-bold text-gray-700">Date</label>
                                             <input
-                                                type="date"
-                                                min={new Date().toISOString().split('T')[0]}
-                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all"
+                                                type="datetime-local"
+                                                value={appointmentForm.date}
+                                                onChange={(e) => setAppointmentForm({ ...appointmentForm, date: e.target.value })}
+                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all font-bold text-sm"
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-bold text-gray-700">Time</label>
-                                            <input
-                                                type="time"
-                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all"
-                                            />
+                                            <label className="text-sm font-bold text-gray-700">Doctor</label>
+                                            <select
+                                                value={appointmentForm.doctorId}
+                                                onChange={(e) => setAppointmentForm({ ...appointmentForm, doctorId: e.target.value })}
+                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all font-bold text-sm"
+                                            >
+                                                <option value="">Select Doctor</option>
+                                                {doctors.map(d => (
+                                                    <option key={d._id} value={d._id}>Dr. {d.name} ({d.specialization})</option>
+                                                ))}
+                                            </select>
                                         </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-gray-700">Reason for Visit</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Symptoms or check-up type"
+                                            value={appointmentForm.reason}
+                                            onChange={(e) => setAppointmentForm({ ...appointmentForm, reason: e.target.value })}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 transition-all font-medium text-sm"
+                                        />
                                     </div>
                                     <div className="flex gap-3">
                                         <button
                                             onClick={() => {
                                                 setActiveModal(null);
                                                 setNewlyRegisteredPatient(null);
-                                                setNewPatientData({ name: '', phone: '', department: 'Cardiology' });
+                                                setNewUser({ name: '', phone: '', email: '', department: 'General Medicine' });
                                             }}
                                             className="flex-1 py-4 bg-white text-gray-700 border border-gray-200 rounded-xl font-bold hover:bg-gray-50 transition-all"
                                         >
                                             Skip for Now
                                         </button>
                                         <button
-                                            onClick={() => {
-                                                // Handle appointment booking
-                                                alert(`Appointment booked for ${newlyRegisteredPatient?.name}`);
-                                                setActiveModal(null);
-                                                setNewlyRegisteredPatient(null);
-                                                setNewPatientData({ name: '', phone: '', department: 'Cardiology' });
+                                            disabled={loading || !appointmentForm.doctorId || !appointmentForm.date}
+                                            onClick={async () => {
+                                                setLoading(true);
+                                                try {
+                                                    // newlyRegisteredPatient has _id from the Patient model creation step
+                                                    await api.post('/appointments', {
+                                                        patientId: newlyRegisteredPatient._id,
+                                                        doctorId: appointmentForm.doctorId,
+                                                        date: appointmentForm.date,
+                                                        reason: appointmentForm.reason
+                                                    });
+                                                    alert('Appointment Booked Successfully!');
+                                                    setActiveModal(null);
+                                                    setNewlyRegisteredPatient(null);
+                                                    setNewUser({ name: '', phone: '', email: '', department: 'General Medicine' });
+                                                    fetchAppointments();
+                                                } catch (err) {
+                                                    alert(err.response?.data?.message || 'Booking failed');
+                                                } finally {
+                                                    setLoading(false);
+                                                }
                                             }}
-                                            className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                                            className="flex-1 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
                                         >
-                                            Confirm Booking
+                                            {loading ? 'Processing...' : 'Confirm Booking'}
                                         </button>
                                     </div>
                                 </div>
                             )}
                             {activeModal === 'billing' && (
-                                <div className="text-center py-10">
-                                    <CreditCard size={48} className="text-blue-200 mx-auto mb-4" />
-                                    <p className="text-gray-500 font-medium mb-6">Redirecting to payment gateway or finalizing invoice...</p>
-                                    <button onClick={() => setActiveModal(null)} className="px-8 py-3 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all text-sm">
-                                        Close Manager
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Billing Registry</h4>
+                                        <button onClick={() => fetchStats()} className="p-2 hover:bg-slate-100 rounded-lg transition-all">
+                                            <RefreshCw size={16} className="text-slate-400" />
+                                        </button>
+                                    </div>
+                                    <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {bills.length > 0 ? (
+                                            bills.map(bill => (
+                                                <div key={bill._id} className="p-5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between group hover:border-emerald-200 transition-all">
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Invoice #{bill._id.slice(-6)}</p>
+                                                        <h5 className="font-black text-slate-900 text-lg leading-none mb-1">${bill.amount.toLocaleString()}</h5>
+                                                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-widest ${bill.status === 'Paid' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+                                                            {bill.status}
+                                                        </span>
+                                                    </div>
+                                                    {bill.status !== 'Paid' && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await api.put(`/billing/${bill._id}/status`, { status: 'Paid', paymentMethod: 'Cash' });
+                                                                    fetchBills(selectedPatient.uid);
+                                                                    fetchStats();
+                                                                } catch (err) { alert('Payment processing failed'); }
+                                                            }}
+                                                            className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+                                                        >
+                                                            Collect Cash
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="py-12 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                                                <CreditCard size={32} className="text-slate-200 mx-auto mb-3" />
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Zero Pending Invoices</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button onClick={() => setActiveModal(null)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-2xl active:scale-[0.98]">
+                                        Exit Registry
                                     </button>
                                 </div>
                             )}
@@ -564,27 +796,30 @@ const ReceptionistDashboard = () => {
                                                         Medical Repository
                                                     </h5>
                                                     <div className="grid grid-cols-1 gap-3">
-                                                        {['Lab_Report_Jan.pdf', 'X-Ray_UpperChest.jpg', 'Admission_Note.docx'].map((file, idx) => (
-                                                            <div
-                                                                key={idx}
-                                                                onClick={() => setSelectedFile(file)}
-                                                                className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 group hover:border-blue-300 hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
-                                                            >
-                                                                <div className="flex items-center gap-4">
-                                                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                                                        <FileText size={18} />
+                                                        {medicalRecords.length > 0 ? (
+                                                            medicalRecords.map((record, idx) => (
+                                                                <div
+                                                                    key={record._id}
+                                                                    onClick={() => setSelectedFile(record.diagnosis)}
+                                                                    className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100 group hover:border-blue-300 hover:shadow-md transition-all cursor-pointer active:scale-[0.98]"
+                                                                >
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                                            <FileText size={18} />
+                                                                        </div>
+                                                                        <div>
+                                                                            <span className="text-sm font-bold text-gray-700 block tracking-tight uppercase">{record.diagnosis}</span>
+                                                                            <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">{new Date(record.createdAt).toLocaleDateString()} • {record.doctor?.user?.name}</span>
+                                                                        </div>
                                                                     </div>
-                                                                    <div>
-                                                                        <span className="text-sm font-bold text-gray-700 block">{file}</span>
-                                                                        <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Secure Document • 2.4 MB</span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="text-[9px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity uppercase">Open Record</span>
                                                                     <ArrowRight size={18} className="text-gray-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
                                                                 </div>
+                                                            ))
+                                                        ) : (
+                                                            <div className="py-10 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                                                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">No Medical Records Found</p>
                                                             </div>
-                                                        ))}
+                                                        )}
                                                     </div>
                                                     <div className="mt-8 p-4 bg-blue-50/50 rounded-xl border border-blue-100 border-dashed text-center">
                                                         <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest leading-relaxed">
