@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useContext } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 
 import AuthContext, { AuthProvider } from './context/AuthContext.jsx';
 import { NotificationProvider } from './context/NotificationContext.jsx';
@@ -158,6 +159,7 @@ function App() {
             <AuthProvider>
                 <NotificationProvider>
                     <AppContent />
+                    <Analytics />
                 </NotificationProvider>
             </AuthProvider>
         </Router>
